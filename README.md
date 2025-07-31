@@ -1,20 +1,31 @@
-# PeakStranding
+# Peak Stranding
 
-Describe your project here!
+**Get help from your past self**: this mod keeps the tools you deploy on a map between runs.  
 
-## Template Instructions
+Death Stranding-style asynchronous multiplayer - random items from other players appearing in your world - is planned for future updates.
 
-You can remove this section after you've set up your project.
+This is a **server-side** mod; only the lobby host has to install it. The host saves every item deployed during a run by any player and syncs them back to clients at the start of subsequent runs on the same map. The mod does nothing on the client side, so having it installed there won’t hurt anything.
 
-Next steps:
+## Known issues
 
-- Create a copy of the `Config.Build.user.props.template` file and name it `Config.Build.user.props`
-  - This will automate copying your plugin assembly to `BepInEx/plugins/`
-  - Configure the paths to point to your game path and your `BepInEx/plugins/`
-  - Game assembly references should work if the path to the game is valid
-- Search `TODO` in the whole project to see what you should configure or modify
+### Overloading the network
+It’s easy to flood a map with items, especially when they're clustered together - or worse, a pile of ropes, which are heavy to synchronize. If players connecting to you get kicked with Proton errors, delete your saves or disable the mod before the map rolls to a new seed. Reconnects during gameplay and mods that raise the player limit or speed up restarts only make the problem worse.
 
-### Thunderstore Packaging
+### Inaccuracies in item replication
+Some items can’t be reproduced exactly. Ropes may be arranged differently than when you left them, and the rope-shooter's anchor angle is slightly off.
+
+## Planned (Not Yet Implemented)
+- Asynchronous multiplayer: random items from other players who have played on the same map
+- Wide range of configuration options
+
+### Where are the saves stored?
+Deployed items are saved per map seed in `\BepInEx\config\PeakStranding\PlacedItems` folder.
+
+
+
+
+
+### Thunderstore Packaging (remove later)
 
 This template comes with Thunderstore packaging built-in, using [TCLI](<https://github.com/thunderstore-io/thunderstore-cli>).
 

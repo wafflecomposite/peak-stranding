@@ -1,6 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
-using PeakStranding;
+using PeakStranding.Data;
+using Photon.Pun;
 
 namespace PeakStranding.Patches;
 
@@ -13,6 +14,7 @@ public static class RopeAnchorProjectileGetShotPatch
                                 float ropeLength,
                                 Vector3 flyingRotation)
     {
+        if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
 
         var rapw = __instance.GetComponent<RopeAnchorWithRope>();

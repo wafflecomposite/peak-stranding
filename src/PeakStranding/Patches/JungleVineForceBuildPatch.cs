@@ -1,6 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
-using PeakStranding;
+using PeakStranding.Data;
+using Photon.Pun;
 
 namespace PeakStranding.Patches;
 
@@ -9,6 +10,7 @@ public class JungleVineForceBuildPatch
 {
     private static void Postfix(Vector3 from, Vector3 to, float hang, Vector3 mid)
     {
+        if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         var itemData = new PlacedItemData
         {
