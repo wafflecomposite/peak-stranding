@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ItemPersistenceMod
+namespace PeakStranding
 {
     public class RestoredItem : MonoBehaviour { }
 }
