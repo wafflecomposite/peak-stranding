@@ -27,7 +27,7 @@ namespace PeakStranding
         private static string GetSaveFilePath(int mapId)
         {
             //var steamId = SteamUser.GetSteamID();
-            var folderPath = Path.Combine(Paths.ConfigPath, "PeakStranding");
+            var folderPath = Path.Combine(Paths.ConfigPath, "PeakStranding", "PlacedItems");
             Directory.CreateDirectory(folderPath);
             return Path.Combine(folderPath, $"PlacedItems_{mapId}.json");
         }

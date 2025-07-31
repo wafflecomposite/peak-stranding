@@ -6,9 +6,9 @@ repository = "https://thunderstore.io"
 
 [package]
 namespace = "lnkr"
-name = "PeakStranding"
-description = "TODO: Fill in short mod description."
-websiteUrl = "" # TODO: Add a link to your mod repository here (optional)
+name = "Peak Stranding"
+description = "Saves every rope, piton, shroom and other placed gizmo between runs. Async multiplayer is coming soon."
+websiteUrl = "https://github.com/wafflecomposite/peak-stranding"
 containsNsfwContent = false
 
 [package.dependencies]
@@ -41,4 +41,4 @@ communities = [ "peak", ]
 [publish.categories]
 # See categories at:
 # https://thunderstore.io/api/experimental/community/peak/category/
-peak = [ "mods", ]
+peak = [ "mods", "host", "qol"]
