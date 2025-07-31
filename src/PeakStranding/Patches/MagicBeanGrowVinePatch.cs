@@ -1,7 +1,8 @@
 using HarmonyLib;
 using UnityEngine;
 using System.Runtime.CompilerServices;
-using PeakStranding;
+using PeakStranding.Data;
+using Photon.Pun;
 
 namespace PeakStranding.Patches;
 
@@ -15,6 +16,7 @@ public static class MagicBeanGrowVinePatch
                                 Vector3 direction,
                                 float maxLength)
     {
+        if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         if (saved.TryGetValue(__instance, out _)) return;
         saved.Add(__instance, null);

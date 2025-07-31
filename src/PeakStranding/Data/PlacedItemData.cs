@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace PeakStranding
+namespace PeakStranding.Data
 {
     [Serializable]
     public class PlacedItemData
@@ -9,7 +9,6 @@ namespace PeakStranding
         public string PrefabName;
         public Vector3 Position;
         public Quaternion Rotation;
-
 
         // Vine
         public Vector3 from, to, mid;
@@ -21,8 +20,5 @@ namespace PeakStranding
         public Vector3 RopeFlyingRotation;
         public Quaternion RopeAnchorRotation;
         public bool RopeAntiGrav;
-
-        // Rope Spool
-        public float SpoolSegments;
     }
 }

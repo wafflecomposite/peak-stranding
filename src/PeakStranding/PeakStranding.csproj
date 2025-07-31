@@ -1,14 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- This is the most appropriate target framework for the game's Unity version. -->
     <TargetFramework>netstandard2.1</TargetFramework>
     <!-- This is the GUID of your mod. Example: com.github.YourAccount.BepInExTemplate -->
-    <AssemblyName>com.github.wafflecomposite.peak-stranding</AssemblyName>
+    <AssemblyName>com.github.wafflecomposite.PeakStranding</AssemblyName>
     <!-- This is the display name of your mod. Example: BepInEx Template -->
     <AssemblyTitle>PeakStranding</AssemblyTitle>
     <!-- This is the version number of your mod. -->
-    <Version>0.1.0</Version>
+    <Version>0.5.0</Version>
   </PropertyGroup>
 
   <!--

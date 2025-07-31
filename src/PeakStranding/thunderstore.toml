@@ -20,7 +20,7 @@ readme = "../../README.md"
 outdir = "../../artifacts/thunderstore/"
 
 [[build.copy]]
-source = "../../artifacts/bin/PeakStranding/release/com.github.wafflecomposite.peak-stranding.dll"
+source = "../../artifacts/bin/PeakStranding/release/com.github.wafflecomposite.PeakStranding.dll"
 target = "plugins/"
 
 [[build.copy]]

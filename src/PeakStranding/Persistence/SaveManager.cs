@@ -6,12 +6,13 @@ using Newtonsoft.Json;
 using UnityEngine;
 using Photon.Pun;
 using System.Collections;
+using PeakStranding.Data;
 
 namespace PeakStranding
 {
     public static class SaveManager
     {
-        public const string RESTORED_ITEM_MARKER = "ITEM_PERSISTENCE_MOD_RESTORED";
+        public const string RESTORED_ITEM_MARKER = "PEAK_STRANDING_RESTORED";
 
         public static bool IsRestoring { get; private set; }
         public static void BeginRestore() => IsRestoring = true;
@@ -39,6 +40,7 @@ namespace PeakStranding
         public static void AddItemToSave(PlacedItemData data)
         {
             if (data == null) return;
+            if (!PhotonNetwork.IsMasterClient) return; // Only the host saves items
 
             SessionPlacedItems.Add(data);
 
@@ -50,7 +52,7 @@ namespace PeakStranding
 
             var json = JsonConvert.SerializeObject(existingItems, Formatting.Indented, JsonSettings);
             File.WriteAllText(filePath, json);
-            Debug.Log($"[ItemPersistence] Saved item {data.PrefabName}. Total items for map {mapId}: {existingItems.Count}");
+            Debug.Log($"[PeakStranding] Saved item {data.PrefabName}. Total items for map {mapId}: {existingItems.Count}");
         }
 
         private static List<PlacedItemData> GetSavedItemsForSeed(int mapId)
@@ -76,7 +78,7 @@ namespace PeakStranding
             var mapId = GameHandler.GetService<NextLevelService>().Data.Value.CurrentLevelIndex;
             var itemsToLoad = GetSavedItemsForSeed(mapId);
 
-            Debug.Log($"[ItemPersistence] Loading {itemsToLoad.Count} items for map {mapId}.");
+            Debug.Log($"[PeakStranding] Loading {itemsToLoad.Count} items for map {mapId}.");
 
             foreach (var itemData in itemsToLoad)
             {
@@ -87,13 +89,13 @@ namespace PeakStranding
                     var prefab = Resources.Load<GameObject>(prefabPath);
                     if (prefab == null)
                     {
-                        Debug.LogError($"[ItemPersistence] Prefab not found in Resources: {prefabPath}");
+                        Debug.LogError($"[PeakStranding] Prefab not found in Resources: {prefabPath}");
                         continue;
                     }
                     var spawnedItem = PhotonNetwork.Instantiate(prefabPath, itemData.Position, itemData.Rotation, 0, [RESTORED_ITEM_MARKER]);
                     if (spawnedItem == null)
                     {
-                        Debug.LogError($"[ItemPersistence] Failed to instantiate prefab via Photon: {prefabPath}");
+                        Debug.LogError($"[PeakStranding] Failed to instantiate prefab via Photon: {prefabPath}");
                         continue;
                     }
                     spawnedItem.AddComponent<RestoredItem>();
@@ -114,7 +116,7 @@ namespace PeakStranding
                     }
                     else
                     {
-                        Debug.LogError($"[ItemPersistence] Failed to instantiate JungleVine prefab: {prefabPath}");
+                        Debug.LogError($"[PeakStranding] Failed to instantiate JungleVine prefab: {prefabPath}");
                     }
                 }
                 else if (prefabPath.StartsWith("PeakStranding/RopeShooter"))
@@ -133,7 +135,7 @@ namespace PeakStranding
                     var projectile = anchorObj.GetComponent<RopeAnchorProjectile>();
                     if (projectile == null)
                     {
-                        Debug.LogError($"[ItemPersistence] Rope prefab lacks RopeAnchorProjectile: {prefabPath}");
+                        Debug.LogError($"[PeakStranding] Rope prefab lacks RopeAnchorProjectile: {prefabPath}");
                         return;
                     }
 
@@ -182,7 +184,7 @@ namespace PeakStranding
                     rope.photonView.RPC("AttachToSpool_Rpc", RpcTarget.AllBuffered, spool.photonView);
 
                     // pre-set the desired length & flags so Update() can spawn segments
-                    float seg = Mathf.Max(itemData.SpoolSegments, spool.minSegments);
+                    float seg = Mathf.Max(itemData.RopeLength, spool.minSegments);
                     spool.Segments = seg;
                     rope.Segments = seg;
                     if (itemData.RopeAntiGrav) { spool.isAntiRope = true; rope.antigrav = true; }
@@ -234,7 +236,7 @@ namespace PeakStranding
                     var bean = beanObj.GetComponent<MagicBean>();
                     if (bean == null)
                     {
-                        Debug.LogError("[ItemPersistence] MagicBean prefab missing MagicBean script");
+                        Debug.LogError("[PeakStranding] MagicBean prefab missing MagicBean script");
                         return;
                     }
 
@@ -252,7 +254,7 @@ namespace PeakStranding
                 }
                 else
                 {
-                    Debug.LogWarning($"[ItemPersistence] Unhandled prefab type: {prefabPath}");
+                    Debug.LogWarning($"[PeakStranding] Unhandled prefab type: {prefabPath}");
                 }
             }
         }

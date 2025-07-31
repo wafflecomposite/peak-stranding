@@ -1,6 +1,6 @@
 using HarmonyLib;
+using Photon.Pun;
 using UnityEngine;
-using PeakStranding;
 
 namespace PeakStranding.Patches;
 
@@ -9,8 +9,15 @@ public class RunManagerStartRunPatch
 {
     private static void Postfix()
     {
-        Debug.Log("[ItemPersistence] New run started. Loading saved items.");
-        SaveManager.ClearSessionItems();
-        SaveManager.LoadAndSpawnItems();
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log("[PeakStranding] New run started as a CLIENT, items would not be saved or loaded.");
+        }
+        else
+        {
+            Debug.Log("[PeakStranding] New run started as a HOST, loading saved items.");
+            SaveManager.ClearSessionItems();
+            SaveManager.LoadAndSpawnItems();
+        }
     }
 }

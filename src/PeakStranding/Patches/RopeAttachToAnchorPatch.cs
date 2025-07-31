@@ -2,7 +2,7 @@ using HarmonyLib;
 using Photon.Pun;
 using UnityEngine;
 using System.Runtime.CompilerServices;
-using PeakStranding;
+using PeakStranding.Data;
 
 namespace PeakStranding.Patches;
 
@@ -13,6 +13,7 @@ public static class RopeAttachToAnchorPatch
 
     private static void Prefix(Rope __instance, PhotonView anchorView)
     {
+        if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         if (saved.TryGetValue(__instance, out _)) return;
 
@@ -37,13 +38,13 @@ public static class RopeAttachToAnchorPatch
             PrefabName = "PeakStranding/RopeSpool",
             Position = spool.transform.position,
             Rotation = spool.transform.rotation,
-            SpoolSegments = seg,
+            RopeLength = seg,
             RopeAntiGrav = spool.isAntiRope || __instance.antigrav,
             RopeStart = spool.ropeBase.position,
             RopeEnd = anchorPos,
             RopeAnchorRotation = anchorRot
         });
 
-        Debug.Log($"[ItemPersistence] Saved rope spool @ {spool.transform.position}");
+        Debug.Log($"[PeakStranding] Saved rope spool @ {spool.transform.position}");
     }
 }

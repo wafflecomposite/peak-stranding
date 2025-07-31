@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PeakStranding
+namespace PeakStranding.Data
 {
     public class RestoredItem : MonoBehaviour { }
 }
