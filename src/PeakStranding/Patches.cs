@@ -144,4 +144,29 @@ namespace ItemPersistenceMod.Patches
             Debug.Log($"[ItemPersistence] Saved rope spool @ {spool.transform.position}");
         }
     }
+
+    [HarmonyPatch(typeof(MagicBean), "GrowVineRPC")]
+    public static class MagicBean_GrowVineRPC_Patch
+    {
+        private static readonly ConditionalWeakTable<MagicBean, object> saved = new();
+
+        // POSTFIX – bean still exists when this runs
+        static void Postfix(MagicBean __instance,
+                            Vector3 pos,
+                            Vector3 direction,
+                            float maxLength)
+        {
+            if (SaveManager.IsRestoring) return;           // skip replay
+            if (saved.TryGetValue(__instance, out _)) return;           // skip 2nd call
+            saved.Add(__instance, null);
+
+            SaveManager.AddItemToSave(new PlacedItemData
+            {
+                PrefabName = "PeakStranding/MagicBeanVine",
+                Position = pos,
+                Rotation = Quaternion.LookRotation(direction), // reuse generic slot
+                RopeLength = maxLength                           // reuse float slot
+            });
+        }
+    }
 }

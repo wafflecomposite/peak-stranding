@@ -213,6 +213,37 @@ namespace ItemPersistenceMod
                         PhotonNetwork.Destroy(spoolObj);
                     }
                 }
+                else if (prefabPath.StartsWith("PeakStranding/MagicBeanVine"))
+                {
+                    // 1. spawn a bean network-object (the same prefab the game picks up)
+                    var beanObj = PhotonNetwork.Instantiate(
+                                      "0_Items/MagicBean",
+                                      itemData.Position,
+                                      Quaternion.identity,
+                                      0,
+                                      [RESTORED_ITEM_MARKER]);
+
+                    beanObj.AddComponent<RestoredItem>();          // so it won't be re-saved
+
+                    var bean = beanObj.GetComponent<MagicBean>();
+                    if (bean == null)
+                    {
+                        Debug.LogError("[ItemPersistence] MagicBean prefab missing MagicBean script");
+                        return;
+                    }
+
+                    // 2. broadcast the original RPC so every client spawns the vine
+                    Vector3 upDir = itemData.Rotation * Vector3.forward;
+
+                    bean.photonView.RPC("GrowVineRPC",
+                                         RpcTarget.AllBuffered,     // buffer → late joiners also get it
+                                         itemData.Position,
+                                         upDir,
+                                         itemData.RopeLength);
+
+                    // 3. optional: destroy the dummy bean on the host once the RPC is out
+                    Object.Destroy(beanObj);
+                }
                 else
                 {
                     Debug.LogWarning($"[ItemPersistence] Unhandled prefab type: {prefabPath}");
