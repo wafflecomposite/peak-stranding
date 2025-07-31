@@ -125,20 +125,26 @@ namespace ItemPersistenceMod.Patches
 
 
             var anchor = anchorView.GetComponent<RopeAnchor>();
-            var anchorTf = anchor.anchorPoint ?? anchor.transform;
+            Vector3 anchorPos = anchor.transform.position;
+            Quaternion anchorRot = anchor.transform.rotation;
 
             saved.Add(__instance, null);
+
+            float seg = spool.Segments > 0.01f
+                  ? spool.Segments
+                  : Mathf.Max(__instance.SegmentCount,
+                              spool.minSegments);
 
             SaveManager.AddItemToSave(new PlacedItemData
             {
                 PrefabName = "PeakStranding/RopeSpool",
                 Position = spool.transform.position,
                 Rotation = spool.transform.rotation,
-                SpoolSegments = spool.Segments,
+                SpoolSegments = seg,
                 RopeAntiGrav = spool.isAntiRope || __instance.antigrav,
                 RopeStart = spool.ropeBase.position,
-                RopeEnd = anchorTf.position,
-                RopeAnchorRotation = anchor.transform.rotation
+                RopeEnd = anchorPos,
+                RopeAnchorRotation = anchorRot
             });
 
             Debug.Log($"[ItemPersistence] Saved rope spool @ {spool.transform.position}");
