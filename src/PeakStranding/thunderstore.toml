@@ -6,7 +6,7 @@ repository = "https://thunderstore.io"
 
 [package]
 namespace = "lnkr"
-name = "Peak Stranding"
+name = "PeakStranding"
 description = "Saves every rope, piton, shroom and other placed gizmo between runs. Async multiplayer is coming soon."
 websiteUrl = "https://github.com/wafflecomposite/peak-stranding"
 containsNsfwContent = false
