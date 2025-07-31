@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace ItemPersistenceMod
+namespace PeakStranding
 {
     [Serializable]
     public class PlacedItemData

@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using UnityEngine;
 
-namespace ItemPersistenceMod
+namespace PeakStranding
 {
     public class Vector3Converter : JsonConverter<Vector3>
     {

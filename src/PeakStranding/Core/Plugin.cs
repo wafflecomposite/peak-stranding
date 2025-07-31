@@ -6,7 +6,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 
-namespace ItemPersistenceMod;
+namespace PeakStranding;
 
 // Here are some basic resources on code style and naming conventions to help
 // you in your first CSharp plugin!

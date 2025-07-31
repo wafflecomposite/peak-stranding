@@ -7,7 +7,7 @@ using UnityEngine;
 using Photon.Pun;
 using System.Collections;
 
-namespace ItemPersistenceMod
+namespace PeakStranding
 {
     public static class SaveManager
     {
@@ -26,7 +26,7 @@ namespace ItemPersistenceMod
         private static string GetSaveFilePath(int mapId)
         {
             //var steamId = SteamUser.GetSteamID();
-            var folderPath = Path.Combine(Paths.ConfigPath, "ItemPersistenceMod");
+            var folderPath = Path.Combine(Paths.ConfigPath, "PeakStranding");
             Directory.CreateDirectory(folderPath);
             return Path.Combine(folderPath, $"PlacedItems_{mapId}.json");
         }
