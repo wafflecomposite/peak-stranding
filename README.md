@@ -1,25 +1,25 @@
 # Peak Stranding
 
-Get some help from your past self: this mod keeps the tools you deployed on map between runs.
+**Get help from your past self**: this mod keeps the tools you deploy on a map between runs.  
 
-Death Stranding-style asynchronous multiplayer with the appearance random items from random players is planned for future updates.
+Death Stranding-style asynchronous multiplayer - random items from other players appearing in your world - is planned for future updates.
 
-This is a server-side mod, only the lobby host have to install it. Hosts saves items that are deployed during the run by any player, and then syncs them back to clients at the start of next runs on the same map. Does nothing on client side, shouldn't hurt either.
+This is a **server-side** mod; only the lobby host has to install it. The host saves every item deployed during a run by any player and syncs them back to clients at the start of subsequent runs on the same map. The mod does nothing on the client side, so having it installed there won’t hurt anything.
 
 ## Known issues
 
 ### Overloading the network
-It's pretty easy to overload the map with items, especially if they're close together, especially if it's a bunch of ropes that are heavy to syncronize. If players connecting to you are getting kicked due to Proton errors, delete your saves or disable the mod before map switches to a new seed. Reconnects during gameplay and mods that increase the player limit or speed up the run restart are bound to add insult to injury.
+It’s easy to flood a map with items, especially when they're clustered together - or worse, a pile of ropes, which are heavy to synchronize. If players connecting to you get kicked with Proton errors, delete your saves or disable the mod before the map rolls to a new seed. Reconnects during gameplay and mods that raise the player limit or speed up restarts only make the problem worse.
 
 ### Inaccuracies in item replication
-Some items cannot be replicated precisely. Expect the ropes to be arranged differently than you left them. The rope shooter's anchor angle is also a bit off.
+Some items can’t be reproduced exactly. Ropes may be arranged differently than when you left them, and the rope-shooter's anchor angle is slightly off.
 
 ## Planned (Not Yet Implemented)
-- Asynchronous multiplayer - random items from other players who have played on this map
-- Wide range of settings
+- Asynchronous multiplayer: random items from other players who have played on the same map
+- Wide range of configuration options
 
 ### Where are the saves stored?
-Deployed items are tied to map seed and saved to `\BepInEx\config\PeakStranding\PlacedItems` folder.
+Deployed items are saved per map seed in `\BepInEx\config\PeakStranding\PlacedItems` folder.
 
 
 
