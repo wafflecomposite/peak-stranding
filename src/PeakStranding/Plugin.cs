@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿using System;
+using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using Photon.Pun;
@@ -60,23 +61,30 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         // PUN packs the payload in a Hashtable
         var ev = (ExitGames.Client.Photon.Hashtable)photonEvent.CustomData;
 
-        string prefab = (string)ev[(byte)0];  // prefab path/name
+        string prefabName = (string)ev[(byte)0];  // prefab path/name
         Vector3 pos = ev.ContainsKey((byte)1) ? (Vector3)ev[(byte)1] : Vector3.zero;
         Quaternion rot = ev.ContainsKey((byte)2) ? (Quaternion)ev[(byte)2] : Quaternion.identity;
         object[]? data = ev.ContainsKey((byte)5) ? (object[])ev[(byte)5] : null;
 
         // Skip anything you yourself restored
         if (data?.Length > 0 && data[0] as string == SaveManager.RESTORED_ITEM_MARKER) return;
+        var basicSpawnable = new string[]
+        {
+            "0_Items/ClimbingSpikeHammered",
+            "0_Items/ShelfShroomSpawn",
+            "0_Items/BounceShroomSpawn",
+            "Flag_planted_seagull",
+            "Flag_planted_turtle",
+            "PortableStovetop_Placed"
+        };
+        Debug.Log($"[ItemPersistence] It was {prefabName}");
+        if (!Array.Exists(basicSpawnable, p => p == prefabName)) return;
 
-        // We only care about hammered climbing spikes
-        Debug.Log($"[ItemPersistence] It was {prefab}");
-        if (!(prefab == "0_Items/ClimbingSpikeHammered")) return;
-
-        Log.LogInfo($"[ItemPersistence] Player {photonEvent.Sender} placed {prefab} at {pos}, gotta save it!");
+        Log.LogInfo($"[ItemPersistence] Player {photonEvent.Sender} placed {prefabName} at {pos}, gotta save it!");
 
         SaveManager.AddItemToSave(new PlacedItemData
         {
-            PrefabName = "0_Items/ClimbingSpikeHammered",   // or prefab if you prefer full path
+            PrefabName = prefabName,   // or prefab if you prefer full path
             Position = pos,
             Rotation = rot
         });

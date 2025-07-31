@@ -45,7 +45,7 @@ namespace ItemPersistenceMod
             var mapId = GameHandler.GetService<NextLevelService>().Data.Value.CurrentLevelIndex;
             var filePath = GetSaveFilePath(mapId);
 
-            var existingItems = LoadItems(mapId);
+            var existingItems = GetSavedItemsForSeed(mapId);
             existingItems.Add(data);
 
             var json = JsonConvert.SerializeObject(existingItems, Formatting.Indented, JsonSettings);
@@ -53,7 +53,7 @@ namespace ItemPersistenceMod
             Debug.Log($"[ItemPersistence] Saved item {data.PrefabName}. Total items for map {mapId}: {existingItems.Count}");
         }
 
-        private static List<PlacedItemData> LoadItems(int mapId)
+        private static List<PlacedItemData> GetSavedItemsForSeed(int mapId)
         {
             var filePath = GetSaveFilePath(mapId);
             if (File.Exists(filePath))
@@ -74,7 +74,7 @@ namespace ItemPersistenceMod
         private static void LoadItems()
         {
             var mapId = GameHandler.GetService<NextLevelService>().Data.Value.CurrentLevelIndex;
-            var itemsToLoad = LoadItems(mapId);
+            var itemsToLoad = GetSavedItemsForSeed(mapId);
 
             Debug.Log($"[ItemPersistence] Loading {itemsToLoad.Count} items for map {mapId}.");
 
@@ -104,7 +104,13 @@ namespace ItemPersistenceMod
                     var vine = PhotonNetwork.Instantiate("ChainShootable", itemData.from, Quaternion.identity, 0, [RESTORED_ITEM_MARKER]).GetComponent<JungleVine>();
                     if (vine != null)
                     {
-                        vine.ForceBuildVine_RPC(itemData.from, itemData.to, itemData.hang, itemData.mid);
+                        //vine.ForceBuildVine_RPC(itemData.from, itemData.to, itemData.hang, itemData.mid);
+                        vine.photonView.RPC("ForceBuildVine_RPC",
+                                               RpcTarget.AllBuffered,
+                                               itemData.from,
+                                               itemData.to,
+                                               itemData.hang,
+                                               itemData.mid);
                     }
                     else
                     {
