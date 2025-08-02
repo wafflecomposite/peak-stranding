@@ -122,16 +122,23 @@ namespace PeakStranding
             // oh no, not an easy case
             else if (prefabPath.StartsWith("PeakStranding/JungleVine"))
             {
-                var vine = PhotonNetwork.Instantiate("ChainShootable", itemData.from, Quaternion.identity, 0, [RESTORED_ITEM_MARKER]).GetComponent<JungleVine>();
+                if (itemData.RopeStart == Vector3.zero) // TODO: legacy, remove this when all items are saved with from/to/mid
+                {
+                    itemData.RopeStart = itemData.from;
+                    itemData.RopeEnd = itemData.to;
+                    itemData.RopeFlyingRotation = itemData.mid;
+                    itemData.RopeLength = itemData.hang;
+                }
+
+                var vine = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, [RESTORED_ITEM_MARKER]).GetComponent<JungleVine>();
                 if (vine != null)
                 {
-                    //vine.ForceBuildVine_RPC(itemData.from, itemData.to, itemData.hang, itemData.mid);
                     vine.photonView.RPC("ForceBuildVine_RPC",
                                             RpcTarget.AllBuffered,
-                                            itemData.from,
-                                            itemData.to,
-                                            itemData.hang,
-                                            itemData.mid);
+                                            itemData.RopeStart,
+                                            itemData.RopeEnd,
+                                            itemData.RopeLength,
+                                            itemData.RopeFlyingRotation);
                 }
                 else
                 {

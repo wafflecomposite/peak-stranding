@@ -11,8 +11,8 @@ namespace PeakStranding.Data
         public Quaternion Rotation;
 
         // Vine
-        public Vector3 from, to, mid;
-        public float hang;
+        public Vector3 from, to, mid; // obsolete, use RopeStart as from, RopeEnd as to, RopeFlyingRotation as mid for vine instead
+        public float hang; // obsolete, use RopeLength as hang for vine instead
 
         // Rope Shooter
         public Vector3 RopeStart, RopeEnd;
