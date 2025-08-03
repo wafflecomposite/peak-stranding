@@ -46,8 +46,8 @@ namespace PeakStranding.Online
                 try
                 {
                     var body = JsonConvert.SerializeObject(item.ToServerDto(SteamUser.GetSteamID().m_SteamID, SteamFriends.GetPersonaName(), mapId));
-
-                    Plugin.Log.LogInfo($"Uploading item to remote: {body}");
+                    Plugin.Log.LogInfo($"Uploading item to remote");
+                    //Plugin.Log.LogInfo($"Uploading item to remote: {body}");
                     using var req = new HttpRequestMessage(HttpMethod.Post, StructuresUrl)
                     {
                         Content = new StringContent(body, Encoding.UTF8, "application/json")
