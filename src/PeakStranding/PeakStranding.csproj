@@ -7,7 +7,7 @@
     <!-- This is the display name of your mod. Example: BepInEx Template -->
     <AssemblyTitle>PeakStranding</AssemblyTitle>
     <!-- This is the version number of your mod. -->
-    <Version>0.7.0</Version>
+    <Version>0.8.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

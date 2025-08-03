@@ -43,7 +43,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         // showToastsConfig = Config.Bind("UI", "ShowToasts", true, "Enable or disable toast notifications in the UI.");
         saveStructuresLocallyConfig = Config.Bind("Local", "Save_Structures_Locally", true,
             "Whether to save structures placed in your lobby locally");
-        loadLocalStructuresConfig = Config.Bind("Local", "Load_Local_Structures", true,
+        loadLocalStructuresConfig = Config.Bind("Local", "Load_Local_Structures", false,
             "Whether to load previously saved structures at the start of a new run");
         localStructuresLimitConfig = Config.Bind("Local", "Local_Structures_Limit", -1,
             "How many local structures to load at the start of a new run (-1 for no limit). If you have more than this, only the most recent ones will be loaded.");
