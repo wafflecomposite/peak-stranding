@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,43 +13,46 @@ namespace PeakStranding.Online
 {
     internal static class RemoteApi
     {
+        private static string _cachedSteamAuthTicket = string.Empty;
+
         private static readonly HttpClient http = new()
         {
-            Timeout = TimeSpan.FromSeconds(6)
+            Timeout = TimeSpan.FromSeconds(5)
         };
 
-        private const string BaseUrl = "http://127.0.0.1:8090/api/collections/structures/records";
+        private static readonly string DefaultBaseUrl = $"http://127.0.0.1:3000/api/v1";
 
-        // ---------- upload ----------
+        internal static string GetBaseUrl()
+        {
+            return string.IsNullOrEmpty(Plugin.CfgRemoteApiUrl)
+                ? DefaultBaseUrl
+                : Plugin.CfgRemoteApiUrl.TrimEnd('/');
+        }
+        internal static string StructuresUrl => $"{GetBaseUrl()}/structures";
 
-        public static void UploadOnce(int mapId, PlacedItemData item)
+        private static string GetAuthTicket()
+        {
+            if (string.IsNullOrEmpty(_cachedSteamAuthTicket))
+            {
+                _cachedSteamAuthTicket = SteamAuthTicketService.GetSteamAuthTicket().Item1;
+            }
+            return _cachedSteamAuthTicket;
+        }
+
+        public static void Upload(int mapId, PlacedItemData item)
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    var body = JsonConvert.SerializeObject(new
-                    {
-                        //id = Guid.NewGuid(),
-                        user_id = SteamUser.GetSteamID().m_SteamID,
-                        map_id = mapId,
-                        prefab = item.PrefabName,
-                        pos_x = item.Position.x,
-                        pos_y = item.Position.y,
-                        pos_z = item.Position.z,
-                        rot_x = item.Rotation.x,
-                        rot_y = item.Rotation.y,
-                        rot_z = item.Rotation.z,
-                        rot_w = item.Rotation.w,
-                        cell_x = Mathf.FloorToInt(item.Position.x / 50f),
-                        cell_z = Mathf.FloorToInt(item.Position.z / 50f)
-                    });
+                    var body = JsonConvert.SerializeObject(item.ToServerDto(SteamUser.GetSteamID().m_SteamID, SteamFriends.GetPersonaName(), mapId));
 
-                    using var req = new HttpRequestMessage(HttpMethod.Post, BaseUrl)
+                    Plugin.Log.LogInfo($"Uploading item to remote: {body}");
+                    using var req = new HttpRequestMessage(HttpMethod.Post, StructuresUrl)
                     {
                         Content = new StringContent(body, Encoding.UTF8, "application/json")
                     };
-                    // No auth header for the PoC
+                    req.Headers.Add("X-Steam-Auth", GetAuthTicket());
                     var resp = await http.SendAsync(req).ConfigureAwait(false);
                     resp.EnsureSuccessStatusCode();
                 }
@@ -59,59 +63,52 @@ namespace PeakStranding.Online
             });
         }
 
-        // ---------- download ----------
 
-        public static async Task<List<PlacedItemData>> FetchAmbientAsync(int mapId)
+        public static async Task<List<ServerStructureDto>> FetchStructuresAsync(int mapId)
         {
+            var scene = Uri.EscapeDataString(DataHelper.GetCurrentSceneName());
+            //var mapId = DataHelper.GetCurrentLevelIndex();
+
             try
             {
-                //var url = $"{BaseUrl}?filter=(map_id={mapId}&&user_id!=\"{SteamUser.GetSteamID().m_SteamID}\")" +
-                //"&perPage=50&sort=-created&_=" + UnityEngine.Random.Range(0, int.MaxValue);
-                var url = $"{BaseUrl}?filter=(map_id={mapId})&perPage=5&sort=@random";
-                using var resp = await http.GetAsync(url).ConfigureAwait(false);
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                var url = $"{StructuresUrl}?scene={scene}&map_id={mapId}&limit={Plugin.CfgRemoteStructuresLimit}";
+                using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                req.Headers.Add("X-Steam-Auth", GetAuthTicket());
+                using var resp = await http.SendAsync(req).ConfigureAwait(false);
                 resp.EnsureSuccessStatusCode();
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                var serverData = JsonConvert.DeserializeObject<PbListResponse<ServerStructure>>(json);
-                if (serverData == null || serverData.items == null)
+                if (string.IsNullOrEmpty(json))
                 {
                     Plugin.Log.LogInfo($"Remote fetch returned no items for map {mapId}");
-                    return new List<PlacedItemData>();
+                    return new List<ServerStructureDto>();
                 }
-
-                var list = new List<PlacedItemData>(serverData.items.Count);
-
-                foreach (ServerStructure s in serverData.items)
+                var dtoList = JsonConvert.DeserializeObject<List<ServerStructureDto>>(json);
+                if (dtoList == null || dtoList.Count == 0)
                 {
-                    list.Add(new PlacedItemData
-                    {
-                        PrefabName = s.prefab,
-                        Position = new Vector3(s.pos_x, s.pos_y, s.pos_z),
-                        Rotation = new Quaternion(s.rot_x, s.rot_y, s.rot_z, s.rot_w)
-                    });
+                    Plugin.Log.LogInfo($"Remote fetch returned no items for map {mapId}");
+                    return new List<ServerStructureDto>();
                 }
 
-                return list;
+                var uniqueUsers = new HashSet<ulong>();
+                foreach (var dto in dtoList)
+                {
+                    uniqueUsers.Add(dto.user_id);
+                }
+                stopwatch.Stop();
+                Plugin.Log.LogInfo($"Received {dtoList.Count} online structures from {uniqueUsers.Count} users for map_id {mapId}, took {stopwatch.ElapsedMilliseconds} ms");
+                //UIHandler.Instance.Toast($"Received {dtoList.Count} online structures from {uniqueUsers.Count} users ({stopwatch.ElapsedMilliseconds} ms)", Color.green, 5f, 3f);
+
+                return dtoList;
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogInfo($"Remote fetch failed: {ex.Message}");
-                return new List<PlacedItemData>();   // fall back to offline only
+                return new List<ServerStructureDto>();
             }
         }
 
-        // PocketBase list wrapper
-        private class PbListResponse<T>
-        {
-            public List<T> items;
-        }
-    }
-
-    class ServerStructure
-    {
-        public string prefab;
-        public float pos_x, pos_y, pos_z;
-        public float rot_x, rot_y, rot_z, rot_w;
-        public int cell_x, cell_z;
     }
 }

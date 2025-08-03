@@ -9,6 +9,8 @@ using System.Collections;
 using PeakStranding.Data;
 using PeakStranding.Online;
 using System;
+using System.Linq;
+using System.Diagnostics;
 
 namespace PeakStranding
 {
@@ -39,30 +41,40 @@ namespace PeakStranding
             SessionPlacedItems.Clear();
         }
 
-        public static void AddItemToSave(PlacedItemData data)
+        public static void SaveItem(PlacedItemData data)
         {
+            if (!Plugin.CfgLocalSaveStructures && !Plugin.CfgRemoteSaveStructures) // no saving at all
+            {
+                //Plugin.Log.LogWarning("Saving items is disabled in the config, skipping");
+                return;
+            }
+
             if (data == null) return;
             if (!PhotonNetwork.IsMasterClient) return; // Only the host saves items
 
             SessionPlacedItems.Add(data);
+            var mapId = DataHelper.GetCurrentLevelIndex();
 
-            var mapId = GameHandler.GetService<NextLevelService>().Data.Value.CurrentLevelIndex;
-            var filePath = GetSaveFilePath(mapId);
-
-            var existingItems = GetSavedItemsForSeed(mapId);
-            existingItems.Add(data);
-
-            //var json = JsonConvert.SerializeObject(existingItems, Formatting.Indented, JsonSettings);
-            //File.WriteAllText(filePath, json);
-            Debug.Log($"[PeakStranding] Saved item {data.PrefabName}. Total items for map {mapId}: {existingItems.Count}");
-
-            try
+            if (Plugin.CfgLocalSaveStructures)
             {
-                RemoteApi.UploadOnce(mapId, data);
+                var filePath = GetSaveFilePath(mapId);
+                var existingItems = GetSavedItemsForSeed(mapId);
+                existingItems.Add(data);
+                var json = JsonConvert.SerializeObject(existingItems, Formatting.Indented, JsonSettings);
+                File.WriteAllText(filePath, json);
+                Plugin.Log.LogInfo($"Saved local item {data.PrefabName}. Total items for map {mapId}: {existingItems.Count}");
             }
-            catch (Exception ex)
+
+            if (Plugin.CfgRemoteSaveStructures)
             {
-                Plugin.Log.LogError($"Failed to upload item {data.PrefabName}: {ex.Message}");
+                try
+                {
+                    RemoteApi.Upload(mapId, data);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogError($"Failed to upload item {data.PrefabName}: {ex.Message}");
+                }
             }
         }
 
@@ -77,30 +89,75 @@ namespace PeakStranding
             return new List<PlacedItemData>();
         }
 
-        public static void LoadAndSpawnItems()
+        public static void LoadLocalStructures()
         {
             BeginRestore();
             try { LoadItems(); }
             finally { EndRestore(); }
         }
 
+        public static void LoadRemoteStructures(List<ServerStructureDto> items)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            BeginRestore();
+            try
+            {
+                if (items == null || items.Count == 0)
+                {
+                    Plugin.Log.LogInfo("No remote structures to load.");
+                    return;
+                }
+
+                foreach (var item in items)
+                {
+                    SpawnItem(item.ToPlacedItemData(), item.username);
+                }
+            }
+            finally
+            {
+                EndRestore();
+            }
+            stopwatch.Stop();
+            //UIHandler.Instance.Toast($"Spawned {items.Count} online structures ({stopwatch.ElapsedMilliseconds} ms)", Color.green, 5f, 3f);
+        }
+
         private static void LoadItems()
         {
-            var mapId = GameHandler.GetService<NextLevelService>().Data.Value.CurrentLevelIndex;
-            var itemsToLoad = GetSavedItemsForSeed(mapId);
+            var mapId = DataHelper.GetCurrentLevelIndex();
+            var allItems = GetSavedItemsForSeed(mapId);
+            var itemsToLoad = allItems;
 
-            Debug.Log($"[PeakStranding] Loading {itemsToLoad.Count} items for map {mapId}.");
+            // Apply limit if configured
+            if (Plugin.CfgLocalStructuresLimit > 0 && allItems.Count > Plugin.CfgLocalStructuresLimit)
+            {
+                // Take only the most recent items up to the limit
+                itemsToLoad = allItems
+                    .Skip(allItems.Count - Plugin.CfgLocalStructuresLimit)
+                    .ToList();
+
+                Plugin.Log.LogInfo($"Limiting local items from {allItems.Count} to {Plugin.CfgLocalStructuresLimit} most recent items.");
+            }
+
+            Plugin.Log.LogInfo($"Loading {itemsToLoad.Count} local items for map {mapId}.");
 
             foreach (var itemData in itemsToLoad)
             {
-                SpawnItem(itemData);
+                SpawnItem(itemData, "You");
             }
         }
 
-        public static void SpawnItem(PlacedItemData itemData)
+        public static void AddCreditsToItem(GameObject gameObj, string label)
+        {
+            if (gameObj == null || string.IsNullOrEmpty(label) || !Plugin.CfgShowStructureCredits) return;
+            var credits = gameObj.AddComponent<RestoredItemCredits>();
+            credits.displayText = label;
+        }
+
+        public static void SpawnItem(PlacedItemData itemData, string label = "")
         {
             // print full serialize
-            Debug.Log($"[PeakStranding] Spawning item: {JsonConvert.SerializeObject(itemData, Formatting.Indented, JsonSettings)}");
+            // Plugin.Log.LogInfo($"[PeakStranding] Spawning item: {JsonConvert.SerializeObject(itemData, Formatting.Indented, JsonSettings)}");
             var prefabPath = itemData.PrefabName;
             // easy case, just instantiate
             if (!prefabPath.StartsWith("PeakStranding/"))
@@ -108,16 +165,17 @@ namespace PeakStranding
                 var prefab = Resources.Load<GameObject>(prefabPath);
                 if (prefab == null)
                 {
-                    Debug.LogError($"[PeakStranding] Prefab not found in Resources: {prefabPath}");
+                    Plugin.Log.LogError($"Prefab not found in Resources: {prefabPath}");
                     return;
                 }
                 var spawnedItem = PhotonNetwork.Instantiate(prefabPath, itemData.Position, itemData.Rotation, 0, [RESTORED_ITEM_MARKER]);
                 if (spawnedItem == null)
                 {
-                    Debug.LogError($"[PeakStranding] Failed to instantiate prefab via Photon: {prefabPath}");
+                    Plugin.Log.LogError($"Failed to instantiate prefab via Photon: {prefabPath}");
                     return;
                 }
-                spawnedItem.AddComponent<RestoredItem>();
+                var restoredItemComponent = spawnedItem.AddComponent<RestoredItem>();
+                AddCreditsToItem(spawnedItem, label);
             }
             // oh no, not an easy case
             else if (prefabPath.StartsWith("PeakStranding/JungleVine"))
@@ -130,7 +188,10 @@ namespace PeakStranding
                     itemData.RopeLength = itemData.hang;
                 }
 
-                var vine = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, [RESTORED_ITEM_MARKER]).GetComponent<JungleVine>();
+                var spawnedItem = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, [RESTORED_ITEM_MARKER]);
+                AddCreditsToItem(spawnedItem, label);
+                var vine = spawnedItem.GetComponent<JungleVine>();
+
                 if (vine != null)
                 {
                     vine.photonView.RPC("ForceBuildVine_RPC",
@@ -142,7 +203,7 @@ namespace PeakStranding
                 }
                 else
                 {
-                    Debug.LogError($"[PeakStranding] Failed to instantiate JungleVine prefab: {prefabPath}");
+                    Plugin.Log.LogError($"Failed to instantiate JungleVine prefab: vine == null");
                 }
             }
             else if (prefabPath.StartsWith("PeakStranding/RopeShooter"))
@@ -157,11 +218,11 @@ namespace PeakStranding
                                         itemData.RopeAnchorRotation,
                                         0,
                                         [RESTORED_ITEM_MARKER]);
-
+                AddCreditsToItem(anchorObj, label);
                 var projectile = anchorObj.GetComponent<RopeAnchorProjectile>();
                 if (projectile == null)
                 {
-                    Debug.LogError($"[PeakStranding] Rope prefab lacks RopeAnchorProjectile: {prefabPath}");
+                    Plugin.Log.LogError($"Failed to instantiate Rope: Prefab lacks RopeAnchorProjectile");
                     return;
                 }
 
@@ -231,7 +292,7 @@ namespace PeakStranding
                                         0,
                                         [RESTORED_ITEM_MARKER]);
                     anchorObj.AddComponent<RestoredItem>();
-
+                    AddCreditsToItem(anchorObj, label);
                     anchorObj.GetComponent<RopeAnchor>().Ghost = false;
 
                     // attach rope to anchor
@@ -259,10 +320,16 @@ namespace PeakStranding
 
                 beanObj.AddComponent<RestoredItem>();          // so it won't be re-saved
 
+                // AddCreditsToItem(beanObj, label); // bean is gone after RPC
+                // spawn a dummy GameObject to hold credits
+                var dummyObj = new GameObject("PeakStranding/CreditsDummy");
+                dummyObj.transform.position = itemData.Position;
+                AddCreditsToItem(dummyObj, label);
+
                 var bean = beanObj.GetComponent<MagicBean>();
                 if (bean == null)
                 {
-                    Debug.LogError("[PeakStranding] MagicBean prefab missing MagicBean script");
+                    Plugin.Log.LogError("Failed to instantiate MagicBean: prefab missing MagicBean script");
                     return;
                 }
 
@@ -280,7 +347,7 @@ namespace PeakStranding
             }
             else
             {
-                Debug.LogWarning($"[PeakStranding] Unhandled prefab type: {prefabPath}");
+                Plugin.Log.LogError($"Failed to instantiate some prefab: Unhandled type: {prefabPath}");
             }
         }
 

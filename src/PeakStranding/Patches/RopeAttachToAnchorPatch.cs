@@ -33,7 +33,7 @@ public static class RopeAttachToAnchorPatch
               : Mathf.Max(__instance.SegmentCount,
                           spool.minSegments);
 
-        SaveManager.AddItemToSave(new PlacedItemData
+        var itemData = new PlacedItemData
         {
             PrefabName = "PeakStranding/RopeSpool",
             Position = spool.transform.position,
@@ -43,8 +43,10 @@ public static class RopeAttachToAnchorPatch
             RopeStart = spool.ropeBase.position,
             RopeEnd = anchorPos,
             RopeAnchorRotation = anchorRot
-        });
+        };
+        itemData.AddCurrentRunContext();
+        SaveManager.SaveItem(itemData);
 
-        Debug.Log($"[PeakStranding] Saved rope spool @ {spool.transform.position}");
+        // Debug.Log($"[PeakStranding] Saved rope spool @ {spool.transform.position}");
     }
 }

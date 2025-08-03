@@ -20,6 +20,7 @@ public class JungleVineForceBuildPatch
             RopeLength = hang,
             RopeFlyingRotation = mid
         };
-        SaveManager.AddItemToSave(itemData);
+        itemData.AddCurrentRunContext();
+        SaveManager.SaveItem(itemData);
     }
 }

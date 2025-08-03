@@ -3,6 +3,7 @@ using Photon.Pun;
 using UnityEngine;
 using System;
 using PeakStranding.Data;
+using UnityEngine.SceneManagement;
 
 namespace PeakStranding.Patches;
 
@@ -14,7 +15,7 @@ public class PhotonInstantiatePatch
         if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         if (data?.Length > 0 && data[0] as string == SaveManager.RESTORED_ITEM_MARKER) return;
-        Debug.Log($"[PhotonNetwork.Instantiate] Prefab: {prefabName}, Position: {position}, Rotation: {rotation}, Group: {group}");
+        // Debug.Log($"[PhotonNetwork.Instantiate] Prefab: {prefabName}, Position: {position}, Rotation: {rotation}, Group: {group}");
 
         string[] basicSpawnable =
         {
@@ -32,9 +33,10 @@ public class PhotonInstantiatePatch
             {
                 PrefabName = prefabName,
                 Position = position,
-                Rotation = rotation
+                Rotation = rotation,
             };
-            SaveManager.AddItemToSave(itemData);
+            itemData.AddCurrentRunContext();
+            SaveManager.SaveItem(itemData);
             return;
         }
     }

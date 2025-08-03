@@ -14,34 +14,49 @@ public class RunManagerStartRunPatch
     {
         if (!PhotonNetwork.IsMasterClient)
         {
-            Debug.Log("[PeakStranding] New run started as a CLIENT, items would not be saved or loaded.");
+            Plugin.Log.LogInfo("New run started as a CLIENT, items would not be saved or loaded");
         }
         else
         {
-            Debug.Log("[PeakStranding] New run started as a HOST, loading saved items.");
+            Plugin.Log.LogInfo("New run started as a HOST");
             SaveManager.ClearSessionItems();
-            SaveManager.LoadAndSpawnItems();
+            if (Plugin.CfgLocalLoadStructures)
+            {
+                Plugin.Log.LogInfo("Loading local structures from save");
+                SaveManager.LoadLocalStructures();
+            }
+            else
+            {
+                Plugin.Log.LogInfo("Loading local structures is disabled, skipping");
+            }
 
-            int mapId = GameHandler.GetService<NextLevelService>()
-                               .Data.Value.CurrentLevelIndex;
-
-            // Kick off coroutine on the RunManager MonoBehaviour
-            __instance.StartCoroutine(FetchAndSpawn(mapId));
+            if (Plugin.CfgRemoteLoadStructures)
+            {
+                if (DataHelper.GetCurrentSceneName() == "Airport")
+                {
+                    Plugin.Log.LogInfo("Ain't gonna load remote structures in the airport :P");
+                    return;
+                }
+                Plugin.Log.LogInfo("Loading remote structures from server");
+                __instance.StartCoroutine(FetchAndSpawn(DataHelper.GetCurrentLevelIndex()));
+            }
+            else
+            {
+                Plugin.Log.LogInfo("Loading remote structures is disabled, skipping");
+            }
         }
     }
 
     private static IEnumerator FetchAndSpawn(int mapId)
     {
-        var task = RemoteApi.FetchAmbientAsync(mapId);
+        var task = RemoteApi.FetchStructuresAsync(mapId);
 
-        // Wait until the async HTTP finishes (or fails)
         while (!task.IsCompleted)
             yield return null;
 
         if (task.IsFaulted)
             yield break;
 
-        foreach (PlacedItemData item in task.Result)
-            SaveManager.SpawnItem(item);
+        SaveManager.LoadRemoteStructures(task.Result);
     }
 }
