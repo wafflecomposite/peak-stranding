@@ -32,10 +32,10 @@ The config file is located at `BepInEx/config/com.github.wafflecomposite.PeakStr
 ### Online
 - `Send_Structures_To_Online` - Whether to share structures placed in your lobby to other players. Default: `true`.
 - `Load_Online_Structures` - Whether to load random structures placed by other players in your world. Default: `true`.
-- `Local_Structures_Limit` - How many local structures to load at the start of a new run (-1 for no limit). If you have more than this, only the most recent ones will be loaded. Default: `30`. Limited to `100` on server side.
+- `Online_Structures_Limit` - How many remote structures to load at the start of a new run. Default: `30`. Limited to `100` on server side.
 - `Custom_Server_Api_BaseUrl` - Custom Server URL. Leave empty to use official Peak Stranding server
 ### UI 
-- `Send_Structures_To_Online` - Whether to show usernames for structures placed by other players in the UI. Names comes from Steam and can potentially be offensive. Default: `true`.
+- `Show_Structure_Credits` - Whether to show usernames for structures placed by other players in the UI. Names comes from Steam and can potentially be offensive. Default: `true`.
 
 
 ## Planned (Not Yet Implemented)

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Changelog updated - oops!
+- README fixes
+
+## [0.8.0] - 2025-08-03
+
+### Added
+
 - Async multiplayer (prototype!)
 - Config
 - License XD
