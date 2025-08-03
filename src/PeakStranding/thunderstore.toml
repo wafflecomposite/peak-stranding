@@ -7,12 +7,13 @@ repository = "https://thunderstore.io"
 [package]
 namespace = "lnkr"
 name = "PeakStranding"
-description = "Saves every rope, piton, shroom and other placed gizmo between runs. Async multiplayer is coming soon."
+description = "Climb with unseen allies - Death Stranding–style async multiplayer seeds your world with ropes, pitons, and other structures left by scouts who came before you."
 websiteUrl = "https://github.com/wafflecomposite/peak-stranding"
 containsNsfwContent = false
 
 [package.dependencies]
 BepInEx-BepInExPack_PEAK = "5.4.2403"
+Cysharp-UniTask = "2.5.0"
 
 [build]
 icon = "../../icon.png"

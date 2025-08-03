@@ -20,7 +20,7 @@ public static class RopeAnchorProjectileGetShotPatch
         var rapw = __instance.GetComponent<RopeAnchorWithRope>();
         bool antigrav = rapw?.ropePrefab?.GetComponent<Rope>()?.antigrav == true;
 
-        var item = new PlacedItemData
+        var itemData = new PlacedItemData
         {
             PrefabName = "PeakStranding/RopeShooter",
             RopeStart = __instance.transform.position,
@@ -30,7 +30,7 @@ public static class RopeAnchorProjectileGetShotPatch
             RopeAnchorRotation = __instance.transform.rotation,
             RopeAntiGrav = antigrav
         };
-
-        SaveManager.AddItemToSave(item);
+        itemData.AddCurrentRunContext();
+        SaveManager.SaveItem(itemData);
     }
 }

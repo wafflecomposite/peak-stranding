@@ -15,11 +15,12 @@ public class JungleVineForceBuildPatch
         var itemData = new PlacedItemData
         {
             PrefabName = "PeakStranding/JungleVine",
-            from = from,
-            to = to,
-            hang = hang,
-            mid = mid
+            RopeStart = from,
+            RopeEnd = to,
+            RopeLength = hang,
+            RopeFlyingRotation = mid
         };
-        SaveManager.AddItemToSave(itemData);
+        itemData.AddCurrentRunContext();
+        SaveManager.SaveItem(itemData);
     }
 }

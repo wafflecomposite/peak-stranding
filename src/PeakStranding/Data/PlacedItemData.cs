@@ -11,8 +11,8 @@ namespace PeakStranding.Data
         public Quaternion Rotation;
 
         // Vine
-        public Vector3 from, to, mid;
-        public float hang;
+        [Obsolete] public Vector3 from, to, mid; // use RopeStart as from, RopeEnd as to, RopeFlyingRotation as mid for vine instead
+        [Obsolete] public float hang; // use RopeLength as hang for vine instead
 
         // Rope Shooter
         public Vector3 RopeStart, RopeEnd;
@@ -20,5 +20,14 @@ namespace PeakStranding.Data
         public Vector3 RopeFlyingRotation;
         public Quaternion RopeAnchorRotation;
         public bool RopeAntiGrav;
+
+        public string Scene;
+        public int MapSegment;
+
+        public void AddCurrentRunContext()
+        {
+            Scene = DataHelper.GetCurrentSceneName();
+            MapSegment = DataHelper.GetCurrentMapSegment();
+        }
     }
 }

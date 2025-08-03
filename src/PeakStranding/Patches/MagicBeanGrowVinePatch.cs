@@ -21,12 +21,14 @@ public static class MagicBeanGrowVinePatch
         if (saved.TryGetValue(__instance, out _)) return;
         saved.Add(__instance, null);
 
-        SaveManager.AddItemToSave(new PlacedItemData
+        var itemData = new PlacedItemData
         {
             PrefabName = "PeakStranding/MagicBeanVine",
             Position = pos,
             Rotation = Quaternion.LookRotation(direction),
             RopeLength = maxLength
-        });
+        };
+        itemData.AddCurrentRunContext();
+        SaveManager.SaveItem(itemData);
     }
 }
