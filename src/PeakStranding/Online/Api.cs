@@ -20,7 +20,8 @@ namespace PeakStranding.Online
             Timeout = TimeSpan.FromSeconds(9)
         };
 
-        private static readonly string DefaultBaseUrl = $"https://peakstranding.burning.homes/api/v1";
+        private static readonly string DefaultBaseUrl = $"http://127.0.0.1:3000/api/v1";
+        //private static readonly string DefaultBaseUrl = $"https://peakstranding.burning.homes/api/v1";
 
         internal static string GetBaseUrl()
         {
