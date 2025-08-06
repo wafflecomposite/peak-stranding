@@ -34,6 +34,11 @@ namespace PeakStranding.Patches
         {
             var data = rope.GetData();
             if (!data.IsSleeping) return;
+            
+            // Initialize sleep tracking state
+            data.SleepCountdown = SleepDelay;
+            data.WasBeingClimbed = false;
+            
             rope.GetComponent<PhotonView>().RPC("ExitSleepState_RPC", RpcTarget.All);
         }
 
