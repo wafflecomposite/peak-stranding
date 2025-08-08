@@ -20,8 +20,8 @@ namespace PeakStranding.Online
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        private static readonly string DefaultBaseUrl = $"http://127.0.0.1:3000/api/v1";
-        //private static readonly string DefaultBaseUrl = $"https://peakstranding.burning.homes/api/v1";
+        //private static readonly string DefaultBaseUrl = $"http://127.0.0.1:3000/api/v1";
+        private static readonly string DefaultBaseUrl = $"https://peakstranding.burning.homes/api/v1";
 
         internal static string GetBaseUrl()
         {
@@ -87,7 +87,18 @@ namespace PeakStranding.Online
             return await ExecuteWithAuthRetry(async (authTicket) =>
             {
                 var scene = Uri.EscapeDataString(DataHelper.GetCurrentSceneName());
-                var url = $"{StructuresUrl}?scene={scene}&map_id={mapId}&limit={Plugin.CfgRemoteStructuresLimit}";
+                var urlBuilder = new StringBuilder($"{StructuresUrl}?scene={scene}&map_id={mapId}&limit={Plugin.CfgRemoteStructuresLimit}");
+
+                var excludedPrefabs = DataHelper.GetExcludedPrefabs();
+                if (excludedPrefabs.Count > 0)
+                {
+                    // Join the list into a comma-separated string, URL-encode it, and append it to the URL
+                    // The server will receive a param like &exclude_prefabs=PrefabName1,PrefabName2
+                    var excludedParam = Uri.EscapeDataString(string.Join(",", excludedPrefabs));
+                    urlBuilder.Append($"&exclude_prefabs={excludedParam}");
+                }
+                var url = urlBuilder.ToString();
+                Plugin.Log.LogInfo($"Fetching structures from remote: {url}");
                 using var req = new HttpRequestMessage(HttpMethod.Get, url);
                 req.Headers.Add("X-Steam-Auth", authTicket);
                 using var resp = await http.SendAsync(req).ConfigureAwait(false);

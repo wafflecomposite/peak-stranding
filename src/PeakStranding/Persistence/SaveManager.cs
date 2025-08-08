@@ -242,6 +242,13 @@ namespace PeakStranding
         public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject> onSpawned = null)
         {
             var prefabPath = itemData.PrefabName;
+            if (!DataHelper.IsPrefabAllowed(prefabPath))
+            {
+                Plugin.Log.LogError($"Prefab '{prefabPath}' is not allowed by the structure allow list.");
+                onSpawned?.Invoke(null);
+                return;
+            }
+
             object[] instantiationData = { RESTORED_ITEM_MARKER }; // This is the key change
 
             if (!prefabPath.StartsWith("PeakStranding/"))

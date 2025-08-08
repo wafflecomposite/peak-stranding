@@ -25,6 +25,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     internal static ConfigEntry<bool> showStructureCreditsConfig;
     // internal static ConfigEntry<bool> showToastsConfig;
     internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig;
+    internal static ConfigEntry<string> structureAllowListConfig;
 
 
     public static bool CfgLocalSaveStructures => saveStructuresLocallyConfig.Value;
@@ -36,6 +37,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     public static string CfgRemoteApiUrl => remoteApiUrlConfig.Value;
     public static bool CfgShowStructureCredits => showStructureCreditsConfig.Value;
     public static bool CfgRopeOptimizerExperimental => ropeOptimizerExperimentalConfig.Value;
+    public static string CfgStructureAllowList => structureAllowListConfig.Value;
     // public static bool CfgShowToasts => showToastsConfig.Value;
 
     private void Awake()
@@ -53,13 +55,15 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
             "Whether to send structures placed in your lobby to other players");
         loadRemoteStructuresConfig = Config.Bind("Online", "Load_Online_Structures", true,
             "Whether to load random structures placed by other players");
-        remoteStructuresLimitConfig = Config.Bind("Online", "Online_Structures_Limit", 30,
+        remoteStructuresLimitConfig = Config.Bind("Online", "Online_Structures_Limit", 40,
             "How many remote structures to load at the start of a new run");
         showStructureCreditsConfig = Config.Bind("UI", "Show_Structure_Credits", true,
             "Whether to show usernames for structures placed by other players in the UI");
-        remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
+        structureAllowListConfig = Config.Bind("Online", "Structure_Allow_List", string.Join(" ", DataHelper.prefabMapping.GetAllSeconds()),
+            "A space-separated list of structure prefab names that are allowed to be placed by other players. Leave empty to allow all structures.");
         ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", true,
             "Enable experimental optimizations for the ropes.");
+        remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
 
         //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();
 
@@ -68,6 +72,20 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         var harmony = new Harmony("com.github.wafflecomposite.PeakStranding");
         harmony.PatchAll();
         Log.LogInfo($"Plugin {Name} is loaded!");
+
+        // check if any of the structures in allow list are not in the mapping
+        var readablePrefabNames = DataHelper.prefabMapping.GetAllSeconds();
+        if (!string.IsNullOrWhiteSpace(CfgStructureAllowList))
+        {
+            var allowedPrefabs = CfgStructureAllowList.ToLower().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+            foreach (var prefab in allowedPrefabs)
+            {
+                if (!readablePrefabNames.Contains(prefab))
+                {
+                    Log.LogWarning($"Unrecognized prefab name in allow list: '{prefab}'. Please check your structure allow list.");
+                }
+            }
+        }
     }
 
     private void OnDestroy()
