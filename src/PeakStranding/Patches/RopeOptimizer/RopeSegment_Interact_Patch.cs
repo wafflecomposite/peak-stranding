@@ -9,12 +9,10 @@ namespace PeakStranding.Patches
         {
             if (__instance.rope != null)
             {
+                // Wake the rope when a segment is interacted with. The sleep
+                // timer is managed on the master via RPC, so no additional
+                // local state changes are required here.
                 __instance.rope.WakeUp();
-                if (__instance.rope.photonView.IsMine)
-                {
-                    var data = __instance.rope.GetData();
-                    data.SleepCountdown = -1f;
-                }
             }
         }
     }

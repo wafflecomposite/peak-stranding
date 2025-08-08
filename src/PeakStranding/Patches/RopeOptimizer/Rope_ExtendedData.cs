@@ -27,6 +27,14 @@ namespace PeakStranding.Patches
         {
             var data = rope.GetData();
             if (data.IsSleeping) return;
+
+            // Update local state immediately to avoid duplicate RPCs before the
+            // network message is processed. The RPC will mirror this state on
+            // all other clients.
+            data.IsSleeping = true;
+            data.SleepCountdown = -1f;
+            data.WasBeingClimbed = false;
+
             rope.GetComponent<PhotonView>().RPC("EnterSleepState_RPC", RpcTarget.All);
         }
 
@@ -34,11 +42,13 @@ namespace PeakStranding.Patches
         {
             var data = rope.GetData();
             if (!data.IsSleeping) return;
-            
-            // Initialize sleep tracking state
+
+            // Initialize sleep tracking state locally. The RPC will propagate
+            // the same values to the rest of the clients.
+            data.IsSleeping = false;
             data.SleepCountdown = SleepDelay;
             data.WasBeingClimbed = false;
-            
+
             rope.GetComponent<PhotonView>().RPC("ExitSleepState_RPC", RpcTarget.All);
         }
 
