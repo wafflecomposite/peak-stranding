@@ -14,49 +14,56 @@ public class RunManagerStartRunPatch
     {
         if (!PhotonNetwork.IsMasterClient)
         {
-            Plugin.Log.LogInfo("New run started as a CLIENT, items would not be saved or loaded");
+            Plugin.Log.LogInfo("New run started as a CLIENT, structures will be synced by the host.");
+            return;
+        }
+
+        Plugin.Log.LogInfo("New run started as a HOST. Caching structures.");
+
+
+        SaveManager.ClearCache(); // Clear data from any previous run
+
+        if (Plugin.CfgLocalLoadStructures)
+        {
+            Plugin.Log.LogInfo("Caching local structures from save.");
+            SaveManager.CacheLocalStructures();
         }
         else
         {
-            Plugin.Log.LogInfo("New run started as a HOST");
-            SaveManager.ClearSessionItems();
-            if (Plugin.CfgLocalLoadStructures)
-            {
-                Plugin.Log.LogInfo("Loading local structures from save");
-                SaveManager.LoadLocalStructures();
-            }
-            else
-            {
-                Plugin.Log.LogInfo("Loading local structures is disabled, skipping");
-            }
+            Plugin.Log.LogInfo("Caching local structures is disabled, skipping.");
+        }
 
-            if (Plugin.CfgRemoteLoadStructures)
-            {
-                if (DataHelper.GetCurrentSceneName() == "Airport")
-                {
-                    Plugin.Log.LogInfo("Ain't gonna load remote structures in the airport :P");
-                    return;
-                }
-                Plugin.Log.LogInfo("Loading remote structures from server");
-                __instance.StartCoroutine(FetchAndSpawn(DataHelper.GetCurrentLevelIndex()));
-            }
-            else
-            {
-                Plugin.Log.LogInfo("Loading remote structures is disabled, skipping");
-            }
+        if (Plugin.CfgRemoteLoadStructures && DataHelper.GetCurrentSceneName() != "Airport")
+        {
+            Plugin.Log.LogInfo("Fetching and caching remote structures from server.");
+            __instance.StartCoroutine(FetchCacheAndSpawnInitial(DataHelper.GetCurrentLevelIndex()));
+        }
+        else
+        {
+            Plugin.Log.LogInfo("Remote structures disabled or in Airport. Spawning initial local structures.");
+            SaveManager.SpawnStructuresForSegment(0); // Spawn for segment 0
         }
     }
 
-    private static IEnumerator FetchAndSpawn(int mapId)
+
+    private static IEnumerator FetchCacheAndSpawnInitial(int mapId)
     {
         var task = RemoteApi.FetchStructuresAsync(mapId);
-
         while (!task.IsCompleted)
+        {
             yield return null;
+        }
 
         if (task.IsFaulted)
-            yield break;
+        {
+            Plugin.Log.LogError($"Failed to fetch remote structures: {task.Exception}");
+        }
+        else
+        {
+            SaveManager.CacheRemoteStructures(task.Result);
+        }
 
-        SaveManager.LoadRemoteStructures(task.Result);
+        Plugin.Log.LogInfo("Initial caching complete. Spawning structures for segment 0.");
+        SaveManager.SpawnStructuresForSegment(0);
     }
 }
