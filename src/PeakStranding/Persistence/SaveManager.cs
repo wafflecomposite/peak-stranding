@@ -8,6 +8,7 @@ using BepInEx;
 using Newtonsoft.Json;
 using PeakStranding.Data;
 using PeakStranding.Online;
+using PeakStranding.Patches;
 using Photon.Pun;
 using UnityEngine;
 
@@ -172,6 +173,15 @@ namespace PeakStranding
             {
                 if (instance != null)
                 {
+                    var rope = instance.GetComponent<Rope>();
+                    rope?.photonView.RPC("Detach_Rpc", RpcTarget.AllBuffered);
+
+                    var magicBean = instance.GetComponent<MagicBean>();
+                    if (magicBean != null)
+                    {
+                        MagicBeanPatch.RemoveBeanAndVine(magicBean);
+                    }
+
                     var pv = instance.GetComponent<PhotonView>();
                     if (pv != null)
                     {
@@ -332,6 +342,7 @@ namespace PeakStranding
             {
                 var beanObj = PhotonNetwork.Instantiate("0_Items/MagicBean", itemData.Position, Quaternion.identity, 0, instantiationData);
                 beanObj.AddComponent<RestoredItem>();
+                beanObj.AddComponent<MagicBeanPatch.MagicBeanEventHandler>();
                 //var dummyObj = new GameObject("PeakStranding/CreditsDummy");
                 //dummyObj.transform.position = itemData.Position;
                 var bean = beanObj.GetComponent<MagicBean>();

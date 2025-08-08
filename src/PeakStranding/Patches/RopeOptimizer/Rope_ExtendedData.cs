@@ -11,6 +11,8 @@ namespace PeakStranding.Patches
         public bool IsSleeping;
         public float SleepCountdown = -1f;
         public bool WasBeingClimbed;
+
+        public float NextSleepSyncTime = 0f;
     }
 
     public static class Rope_ExtendedData
@@ -34,6 +36,7 @@ namespace PeakStranding.Patches
             data.IsSleeping = true;
             data.SleepCountdown = -1f;
             data.WasBeingClimbed = false;
+            data.NextSleepSyncTime = Time.unscaledTime + 1.0f;
 
             rope.GetComponent<PhotonView>().RPC("EnterSleepState_RPC", RpcTarget.All);
         }
@@ -48,6 +51,7 @@ namespace PeakStranding.Patches
             data.IsSleeping = false;
             data.SleepCountdown = SleepDelay;
             data.WasBeingClimbed = false;
+            data.NextSleepSyncTime = 0f;
 
             rope.GetComponent<PhotonView>().RPC("ExitSleepState_RPC", RpcTarget.All);
         }

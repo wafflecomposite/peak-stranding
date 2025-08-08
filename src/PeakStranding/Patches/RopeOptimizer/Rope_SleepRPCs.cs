@@ -19,14 +19,14 @@ namespace PeakStranding.Patches
             data.WasBeingClimbed = false;
 
             var segments = (List<Transform>)AccessTools.Field(typeof(Rope), "simulationSegments").GetValue(rope);
-            if (photonView.IsMine)
+            //if (photonView.IsMine)
+            //{
+            foreach (Transform segmentTransform in segments)
             {
-                foreach (Transform segmentTransform in segments)
-                {
-                    Rigidbody rb = segmentTransform.GetComponent<Rigidbody>();
-                    if (rb != null) rb.isKinematic = true;
-                }
+                Rigidbody rb = segmentTransform.GetComponent<Rigidbody>();
+                if (rb != null) rb.isKinematic = true;
             }
+            // }
 
             Debug.Log($"Rope {rope.photonView.ViewID} is now sleeping.");
         }
@@ -41,18 +41,18 @@ namespace PeakStranding.Patches
             data.WasBeingClimbed = false;
 
             var segments = (List<Transform>)AccessTools.Field(typeof(Rope), "simulationSegments").GetValue(rope);
-            if (photonView.IsMine)
+            //if (photonView.IsMine)
+            //{
+            foreach (Transform segmentTransform in segments)
             {
-                foreach (Transform segmentTransform in segments)
+                Rigidbody rb = segmentTransform.GetComponent<Rigidbody>();
+                if (rb != null)
                 {
-                    Rigidbody rb = segmentTransform.GetComponent<Rigidbody>();
-                    if (rb != null)
-                    {
-                        rb.isKinematic = false;
-                        rb.WakeUp();
-                    }
+                    rb.isKinematic = false;
+                    rb.WakeUp();
                 }
             }
+            //}
 
             Debug.Log($"Rope {rope.photonView.ViewID} has woken up.");
         }
