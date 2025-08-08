@@ -37,7 +37,7 @@ namespace PeakStranding.Online
             {
                 _cachedSteamAuthTicket = SteamAuthTicketService.GetSteamAuthTicket().Item1;
             }
-            Plugin.Log.LogInfo($"Using auth ticket: {_cachedSteamAuthTicket}");
+            // Plugin.Log.LogInfo($"Using auth ticket: {_cachedSteamAuthTicket}");
             return _cachedSteamAuthTicket;
         }
 
