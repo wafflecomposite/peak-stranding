@@ -3,7 +3,7 @@
 > Once, there was an expedition
 
 
-### **Online update!** Now with actual "Social Strand System"!
+### v0.8.2 is borked (magic bean breaks the game), update to 0.8.3 or downdrade to 0.8.1
 
 This PEAK mod adds Death Stranding-style asynchronous multiplayer - random items from other players appear in your world and display the names of the scouts who placed them. 
 You can also save and load your items locally to keep them between the runs on the same map (**Disabled by default**).
