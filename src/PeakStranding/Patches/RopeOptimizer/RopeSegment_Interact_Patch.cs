@@ -7,7 +7,7 @@ namespace PeakStranding.Patches
     {
         private static void Prefix(RopeSegment __instance)
         {
-            if (__instance.rope != null)
+            if (__instance.rope != null && Plugin.CfgRopeOptimizerExperimental)
             {
                 // Wake the rope when a segment is interacted with. The sleep
                 // timer is managed on the master via RPC, so no additional

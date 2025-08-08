@@ -12,6 +12,7 @@ namespace PeakStranding.Patches
         [PunRPC]
         private void EnterSleepState_RPC()
         {
+            if (!Plugin.CfgRopeOptimizerExperimental) return;
             var data = rope.GetData();
             data.IsSleeping = true;
             data.SleepCountdown = -1f;
@@ -33,6 +34,7 @@ namespace PeakStranding.Patches
         [PunRPC]
         private void ExitSleepState_RPC()
         {
+            if (!Plugin.CfgRopeOptimizerExperimental) return;
             var data = rope.GetData();
             data.IsSleeping = false;
             data.SleepCountdown = Rope_ExtendedData.SleepDelay;

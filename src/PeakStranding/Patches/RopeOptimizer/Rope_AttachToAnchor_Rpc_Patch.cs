@@ -8,7 +8,7 @@ namespace PeakStranding.Patches
     {
         private static void Postfix(Rope __instance)
         {
-            if (PhotonNetwork.IsMasterClient)
+            if (PhotonNetwork.IsMasterClient && Plugin.CfgRopeOptimizerExperimental)
             {
                 var data = __instance.GetData();
                 data.SleepCountdown = Rope_ExtendedData.SleepDelay;

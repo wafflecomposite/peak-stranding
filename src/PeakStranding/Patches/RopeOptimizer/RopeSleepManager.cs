@@ -9,7 +9,7 @@ namespace PeakStranding.Patches
 
         public static void Initialize()
         {
-            if (!initialized)
+            if (!initialized && Plugin.CfgRopeOptimizerExperimental)
             {
                 GameObject managerObject = new GameObject("RopeSleepManager");
                 managerObject.AddComponent<RopeSleepManager>();
@@ -20,7 +20,7 @@ namespace PeakStranding.Patches
 
         public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
         {
-            if (PhotonNetwork.IsMasterClient)
+            if (PhotonNetwork.IsMasterClient && Plugin.CfgRopeOptimizerExperimental)
             {
                 Plugin.Log.LogError($"[RopeOptimizer] Player {newPlayer.NickName} entered. Waking up all ropes for synchronization.");
                 Rope[] allRopes = FindObjectsByType<Rope>(sortMode: FindObjectsSortMode.None);

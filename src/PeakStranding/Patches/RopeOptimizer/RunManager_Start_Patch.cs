@@ -7,6 +7,8 @@ namespace PeakStranding.Patches
     {
         private static void Postfix()
         {
+            if (!Plugin.CfgRopeOptimizerExperimental) { return; }
+            Plugin.Log.LogInfo("Experimental Rope Optimizer enabled! Enjoy the performance boost. Looking forward to your feedback!");
             RopeSleepManager.Initialize();
         }
     }

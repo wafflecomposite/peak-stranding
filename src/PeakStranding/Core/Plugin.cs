@@ -24,6 +24,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     internal static ConfigEntry<string> remoteApiUrlConfig;
     internal static ConfigEntry<bool> showStructureCreditsConfig;
     // internal static ConfigEntry<bool> showToastsConfig;
+    internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig;
 
 
     public static bool CfgLocalSaveStructures => saveStructuresLocallyConfig.Value;
@@ -34,6 +35,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     public static int CfgRemoteStructuresLimit => remoteStructuresLimitConfig.Value;
     public static string CfgRemoteApiUrl => remoteApiUrlConfig.Value;
     public static bool CfgShowStructureCredits => showStructureCreditsConfig.Value;
+    public static bool CfgRopeOptimizerExperimental => ropeOptimizerExperimentalConfig.Value;
     // public static bool CfgShowToasts => showToastsConfig.Value;
 
     private void Awake()
@@ -56,6 +58,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         showStructureCreditsConfig = Config.Bind("UI", "Show_Structure_Credits", true,
             "Whether to show usernames for structures placed by other players in the UI");
         remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
+        ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", false,
+            "Enable experimental optimizations for the ropes.");
 
         //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();
 

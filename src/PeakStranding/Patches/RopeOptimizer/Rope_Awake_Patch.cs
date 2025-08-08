@@ -8,6 +8,7 @@ namespace PeakStranding.Patches
     {
         private static void Postfix(Rope __instance)
         {
+            if (!Plugin.CfgRopeOptimizerExperimental) return;
             var rpcHandler = __instance.gameObject.AddComponent<Rope_SleepRPCs>();
             rpcHandler.rope = __instance;
         }
