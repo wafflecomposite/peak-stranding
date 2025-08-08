@@ -15,6 +15,7 @@ namespace PeakStranding.Patches
             var data = rope.GetData();
             data.IsSleeping = true;
             data.SleepCountdown = -1f;
+            data.WasBeingClimbed = false;
 
             var segments = (List<Transform>)AccessTools.Field(typeof(Rope), "simulationSegments").GetValue(rope);
             if (photonView.IsMine)
@@ -34,6 +35,8 @@ namespace PeakStranding.Patches
         {
             var data = rope.GetData();
             data.IsSleeping = false;
+            data.SleepCountdown = Rope_ExtendedData.SleepDelay;
+            data.WasBeingClimbed = false;
 
             var segments = (List<Transform>)AccessTools.Field(typeof(Rope), "simulationSegments").GetValue(rope);
             if (photonView.IsMine)
