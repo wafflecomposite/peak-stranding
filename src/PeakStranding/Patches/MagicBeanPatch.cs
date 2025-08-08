@@ -1,3 +1,4 @@
+/*
 using ExitGames.Client.Photon;
 using HarmonyLib;
 using Photon.Pun;
@@ -123,3 +124,4 @@ namespace PeakStranding.Patches
         }
     }
 }
+*/
