@@ -58,7 +58,7 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         showStructureCreditsConfig = Config.Bind("UI", "Show_Structure_Credits", true,
             "Whether to show usernames for structures placed by other players in the UI");
         remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
-        ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", false,
+        ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", true,
             "Enable experimental optimizations for the ropes.");
 
         //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();

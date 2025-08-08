@@ -47,6 +47,7 @@ namespace PeakStranding.Data
 
         private void OnGUI()
         {
+            // !_isNear || 
             if (!_isNear || _mainCam == null || string.IsNullOrEmpty(displayText)) return;
 
             // Convert world → screen
