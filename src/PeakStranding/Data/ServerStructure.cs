@@ -9,6 +9,7 @@ namespace PeakStranding.Data;
 [Serializable]
 public class ServerStructureDto
 {
+    public ulong id;
     public ulong user_id;
     public string username;
     public int map_id;
@@ -27,6 +28,8 @@ public class ServerStructureDto
     public float rope_anchor_rotation_x, rope_anchor_rotation_y, rope_anchor_rotation_z, rope_anchor_rotation_w;
 
     public bool antigrav;
+
+    public int likes;
 }
 
 public static class ServerStructureConverters

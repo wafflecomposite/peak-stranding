@@ -3,6 +3,7 @@ using Photon.Pun;
 using UnityEngine;
 using System.Runtime.CompilerServices;
 using PeakStranding.Data;
+using PeakStranding.Components;
 
 namespace PeakStranding.Patches;
 
@@ -27,6 +28,17 @@ public static class RopeAttachToAnchorPatch
         Quaternion anchorRot = anchor.transform.rotation;
 
         saved.Add(__instance, null);
+
+        // Ensure grouped deletion: attach group on anchor and include rope + anchor PVs
+        if (anchorView != null)
+        {
+            var root = anchorView.gameObject;
+            var group = root.GetComponent<DeletableGroup>();
+            if (group == null) group = root.AddComponent<DeletableGroup>();
+            group.Add(anchorView);
+            if (__instance != null && __instance.photonView != null)
+                group.Add(__instance.photonView);
+        }
 
         float seg = spool.Segments > 0.01f
               ? spool.Segments

@@ -30,6 +30,7 @@ namespace PeakStranding.Online
                 : Plugin.CfgRemoteApiUrl.TrimEnd('/');
         }
         internal static string StructuresUrl => $"{GetBaseUrl()}/structures";
+        internal static string StructureUrl(ulong id) => $"{GetBaseUrl()}/structures/{id}";
 
         private static string GetAuthTicket(bool forceRefresh = false)
         {
@@ -121,6 +122,38 @@ namespace PeakStranding.Online
                 }
                 Plugin.Log.LogInfo($"Received {dtoList.Count} online structures from {uniqueUsers.Count} users for map_id {mapId}");
                 return dtoList;
+            });
+        }
+
+        public static async Task<bool> LikeStructureAsync(ulong id)
+        {
+            // Backward-compat: default to count = 1
+            return await LikeStructureAsync(id, 1).ConfigureAwait(false);
+        }
+
+        public static async Task<bool> LikeStructureAsync(ulong id, int count)
+        {
+            if (count <= 0) return true;
+            return await ExecuteWithAuthRetry(async (authTicket) =>
+            {
+                var url = $"{StructureUrl(id)}/like";
+                // Send a JSON body with the count to allow batching.
+                var payload = JsonConvert.SerializeObject(new { count });
+                using var req = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(payload, Encoding.UTF8, "application/json")
+                };
+                req.Headers.Add("X-Steam-Auth", authTicket);
+                using var resp = await http.SendAsync(req).ConfigureAwait(false);
+
+                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                    resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    throw new HttpRequestException($"Authentication failed with status code: {resp.StatusCode}");
+                }
+
+                resp.EnsureSuccessStatusCode();
+                return true;
             });
         }
 

@@ -7,6 +7,7 @@ using System.Linq;
 using BepInEx;
 using Newtonsoft.Json;
 using PeakStranding.Data;
+using PeakStranding.Components;
 using PeakStranding.Online;
 using PeakStranding.Patches;
 using Photon.Pun;
@@ -28,7 +29,8 @@ namespace PeakStranding
             Converters = new List<JsonConverter> { new Vector3Converter(), new QuaternionConverter() }
         };
 
-        private static readonly Dictionary<int, List<(PlacedItemData data, string label)>> CachedStructures = new();
+        // Cache per segment structures with metadata: username label, server id, likes
+        private static readonly Dictionary<int, List<(PlacedItemData data, string label, ulong id, int likes)>> CachedStructures = new();
         private static readonly Dictionary<int, List<GameObject>> SpawnedInstances = new();
 
         private static string GetSaveFilePath(int mapId)
@@ -102,9 +104,10 @@ namespace PeakStranding
             {
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int)>();
                 }
-                CachedStructures[itemData.MapSegment].Add((itemData, "You"));
+                // Local structures have no server id and zero likes
+                CachedStructures[itemData.MapSegment].Add((itemData, "You", 0UL, 0));
             }
         }
 
@@ -121,9 +124,9 @@ namespace PeakStranding
                 var itemData = item.ToPlacedItemData();
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int)>();
                 }
-                CachedStructures[itemData.MapSegment].Add((itemData, item.username));
+                CachedStructures[itemData.MapSegment].Add((itemData, item.username, item.id, item.likes));
             }
         }
 
@@ -140,7 +143,7 @@ namespace PeakStranding
             try
             {
                 Plugin.Log.LogInfo($"Spawning {itemsToSpawn.Count} structures for segment {segmentIndex}.");
-                foreach (var (itemData, label) in itemsToSpawn)
+                foreach (var (itemData, label, id, likes) in itemsToSpawn)
                 {
                     SpawnItem(itemData, label, (spawnedGo) =>
                     {
@@ -150,6 +153,21 @@ namespace PeakStranding
                             SpawnedInstances[segmentIndex] = new List<GameObject>();
                         }
                         SpawnedInstances[segmentIndex].Add(spawnedGo);
+
+                        // Register overlay for this primary spawned object (skip bare Rope instances)
+                        bool isBareRope = spawnedGo.GetComponent<Rope>() != null
+                                          && spawnedGo.GetComponent<RopeAnchor>() == null
+                                          && spawnedGo.GetComponent<RopeAnchorWithRope>() == null;
+                        if (!isBareRope)
+                        {
+                            OverlayManager.Register(new OverlayManager.RegisterInfo
+                            {
+                                target = spawnedGo,
+                                username = label,
+                                likes = likes,
+                                id = id
+                            });
+                        }
                     });
                 }
             }
@@ -173,26 +191,8 @@ namespace PeakStranding
             {
                 if (instance != null)
                 {
-                    var rope = instance.GetComponent<Rope>();
-                    rope?.photonView.RPC("Detach_Rpc", RpcTarget.AllBuffered);
-
-                    /*
-                    var magicBean = instance.GetComponent<MagicBean>();
-                    if (magicBean != null)
-                    {
-                        MagicBeanPatch.RemoveBeanAndVine(magicBean);
-                    }
-                    */
-
-                    var pv = instance.GetComponent<PhotonView>();
-                    if (pv != null)
-                    {
-                        PhotonNetwork.Destroy(pv);
-                    }
-                    else
-                    {
-                        UnityEngine.Object.Destroy(instance);
-                    }
+                    // Unified deletion handles groups, ropes, anchors, beans/vines
+                    DeletionUtility.Delete(instance);
                 }
             }
             SpawnedInstances.Remove(segmentIndex);
@@ -233,13 +233,6 @@ namespace PeakStranding
             SessionPlacedItems.Clear();
         }
 
-        public static void AddCreditsToItem(GameObject gameObj, string label)
-        {
-            if (gameObj == null || string.IsNullOrEmpty(label) || !Plugin.CfgShowStructureCredits) return;
-            var credits = gameObj.AddComponent<RestoredItemCredits>();
-            credits.displayText = label;
-        }
-
         // --- MODIFIED: Ensured the marker is passed as an object array ---
         public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject> onSpawned = null)
         {
@@ -270,7 +263,6 @@ namespace PeakStranding
                     return;
                 }
                 spawnedItem.AddComponent<RestoredItem>();
-                AddCreditsToItem(spawnedItem, label);
                 onSpawned?.Invoke(spawnedItem);
             }
             else if (prefabPath.StartsWith("PeakStranding/JungleVine"))
@@ -284,7 +276,6 @@ namespace PeakStranding
                 }
 
                 var spawnedItem = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, instantiationData);
-                AddCreditsToItem(spawnedItem, label);
                 onSpawned?.Invoke(spawnedItem);
                 var vine = spawnedItem.GetComponent<JungleVine>();
                 if (vine != null)
@@ -300,7 +291,6 @@ namespace PeakStranding
             {
                 string anchorPrefab = itemData.RopeAntiGrav ? "RopeAnchorForRopeShooterAnti" : "RopeAnchorForRopeShooter";
                 var anchorObj = PhotonNetwork.Instantiate(anchorPrefab, itemData.RopeStart, itemData.RopeAnchorRotation, 0, instantiationData);
-                AddCreditsToItem(anchorObj, label);
                 onSpawned?.Invoke(anchorObj);
                 var projectile = anchorObj.GetComponent<RopeAnchorProjectile>();
                 if (projectile == null)
@@ -337,9 +327,14 @@ namespace PeakStranding
                     while (rope.SegmentCount == 0) yield return null;
                     var anchorObj = PhotonNetwork.Instantiate(anchorPrefabName, itemData.RopeEnd, itemData.RopeAnchorRotation, 0, instantiationData);
                     anchorObj.AddComponent<RestoredItem>();
-                    AddCreditsToItem(anchorObj, label);
                     anchorObj.GetComponent<RopeAnchor>().Ghost = false;
                     rope.photonView.RPC("AttachToAnchor_Rpc", RpcTarget.AllBuffered, anchorObj.GetComponent<PhotonView>());
+                    // Group deletion: ensure anchor has DeletableGroup with rope + anchor
+                    var group = anchorObj.GetComponent<PeakStranding.Components.DeletableGroup>();
+                    if (group == null) group = anchorObj.AddComponent<PeakStranding.Components.DeletableGroup>();
+                    var anchorPv = anchorObj.GetComponent<PhotonView>();
+                    if (anchorPv != null) group.Add(anchorPv);
+                    if (rope != null && rope.photonView != null) group.Add(rope.photonView);
                     float used = seg - spool.minSegments;
                     spool.RopeFuel = Mathf.Max(0f, spool.RopeFuel - used);
                     onSpawned?.Invoke(ropeObj);
@@ -360,7 +355,6 @@ namespace PeakStranding
                 }
                 Vector3 upDir = itemData.Rotation * Vector3.forward;
                 bean.photonView.RPC("GrowVineRPC", RpcTarget.AllBuffered, itemData.Position, upDir, itemData.RopeLength);
-                AddCreditsToItem(beanObj, label);
                 onSpawned?.Invoke(beanObj);
                 //UnityEngine.Object.Destroy(beanObj);
             }

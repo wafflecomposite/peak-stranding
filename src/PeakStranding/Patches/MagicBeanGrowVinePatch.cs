@@ -30,5 +30,7 @@ public static class MagicBeanGrowVinePatch
         };
         itemData.AddCurrentRunContext();
         SaveManager.SaveItem(itemData);
+
+        // No need to store vine position; actual vine reference is tracked by MagicBean_GrowAndTrackVine_Patch
     }
 }
