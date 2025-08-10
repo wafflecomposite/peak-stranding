@@ -22,11 +22,10 @@ namespace PeakStranding
         public override Vector3 ReadJson(JsonReader reader, Type objectType, Vector3 existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             JObject jo = JObject.Load(reader);
-            return new Vector3(
-                (float)jo["x"],
-                (float)jo["y"],
-                (float)jo["z"]
-            );
+            float x = jo["x"]?.Value<float>() ?? 0f;
+            float y = jo["y"]?.Value<float>() ?? 0f;
+            float z = jo["z"]?.Value<float>() ?? 0f;
+            return new Vector3(x, y, z);
         }
     }
 
@@ -49,12 +48,11 @@ namespace PeakStranding
         public override Quaternion ReadJson(JsonReader reader, Type objectType, Quaternion existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             JObject jo = JObject.Load(reader);
-            return new Quaternion(
-                (float)jo["x"],
-                (float)jo["y"],
-                (float)jo["z"],
-                (float)jo["w"]
-            );
+            float x = jo["x"]?.Value<float>() ?? 0f;
+            float y = jo["y"]?.Value<float>() ?? 0f;
+            float z = jo["z"]?.Value<float>() ?? 0f;
+            float w = jo["w"]?.Value<float>() ?? 0f;
+            return new Quaternion(x, y, z, w);
         }
     }
 }

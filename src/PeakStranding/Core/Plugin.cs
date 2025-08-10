@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -15,17 +15,17 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     internal static ManualLogSource Log { get; private set; } = null!;
 
-    internal static ConfigEntry<bool> saveStructuresLocallyConfig;
-    internal static ConfigEntry<bool> loadLocalStructuresConfig;
-    internal static ConfigEntry<int> localStructuresLimitConfig;
-    internal static ConfigEntry<bool> sendStructuresToRemoteConfig;
-    internal static ConfigEntry<bool> loadRemoteStructuresConfig;
-    internal static ConfigEntry<int> remoteStructuresLimitConfig;
-    internal static ConfigEntry<string> remoteApiUrlConfig;
-    internal static ConfigEntry<bool> showStructureCreditsConfig;
+    internal static ConfigEntry<bool> saveStructuresLocallyConfig = null!;
+    internal static ConfigEntry<bool> loadLocalStructuresConfig = null!;
+    internal static ConfigEntry<int> localStructuresLimitConfig = null!;
+    internal static ConfigEntry<bool> sendStructuresToRemoteConfig = null!;
+    internal static ConfigEntry<bool> loadRemoteStructuresConfig = null!;
+    internal static ConfigEntry<int> remoteStructuresLimitConfig = null!;
+    internal static ConfigEntry<string> remoteApiUrlConfig = null!;
+    internal static ConfigEntry<bool> showStructureCreditsConfig = null!;
     // internal static ConfigEntry<bool> showToastsConfig;
-    internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig;
-    internal static ConfigEntry<string> structureAllowListConfig;
+    internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig = null!;
+    internal static ConfigEntry<string> structureAllowListConfig = null!;
 
 
     public static bool CfgLocalSaveStructures => saveStructuresLocallyConfig.Value;

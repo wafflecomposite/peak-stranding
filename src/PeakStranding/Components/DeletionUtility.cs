@@ -7,7 +7,7 @@ namespace PeakStranding.Components
     public static class DeletionUtility
     {
         // Reflection helper to get Rope.attachedToAnchor -> GameObject
-        private static GameObject TryGetRopeAnchorObject(Rope rope)
+        private static GameObject? TryGetRopeAnchorObject(Rope rope)
         {
             try
             {
@@ -96,12 +96,12 @@ namespace PeakStranding.Components
         }
 
         // Helper: find a Rope that is attached to the given RopeAnchor
-        private static Rope FindRopeForAnchor(RopeAnchor anchor)
+        private static Rope? FindRopeForAnchor(RopeAnchor anchor)
         {
             if (anchor == null) return null;
             try
             {
-                var allRopes = GameObject.FindObjectsOfType<Rope>();
+                var allRopes = GameObject.FindObjectsByType<Rope>(sortMode: FindObjectsSortMode.None);
                 foreach (var r in allRopes)
                 {
                     var aGo = TryGetRopeAnchorObject(r);

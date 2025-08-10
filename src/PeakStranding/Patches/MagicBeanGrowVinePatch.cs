@@ -10,6 +10,7 @@ namespace PeakStranding.Patches;
 public static class MagicBeanGrowVinePatch
 {
     private static readonly ConditionalWeakTable<MagicBean, object> saved = new();
+    private static readonly object s_token = new object();
 
     private static void Postfix(MagicBean __instance,
                                 Vector3 pos,
@@ -19,7 +20,7 @@ public static class MagicBeanGrowVinePatch
         if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         if (saved.TryGetValue(__instance, out _)) return;
-        saved.Add(__instance, null);
+        saved.Add(__instance, s_token);
 
         var itemData = new PlacedItemData
         {

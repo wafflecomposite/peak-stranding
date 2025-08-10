@@ -10,7 +10,7 @@ namespace PeakStranding.Components
 {
     public class OverlayManager : MonoBehaviour
     {
-        private static OverlayManager _instance;
+        private static OverlayManager? _instance;
         public static OverlayManager Instance
         {
             get
@@ -25,7 +25,7 @@ namespace PeakStranding.Components
             }
         }
         // Reflection helper to get Rope.attachedToAnchor -> GameObject
-        private static GameObject TryGetRopeAnchorObject(Rope rope)
+        private static GameObject? TryGetRopeAnchorObject(Rope rope)
         {
             try
             {
@@ -40,26 +40,6 @@ namespace PeakStranding.Components
             }
         }
 
-        // Find a Rope that is attached to the given RopeAnchor
-        private static Rope FindRopeForAnchor(RopeAnchor anchor)
-        {
-            if (anchor == null) return null;
-            try
-            {
-                var allRopes = GameObject.FindObjectsOfType<Rope>();
-                foreach (var r in allRopes)
-                {
-                    var aGo = TryGetRopeAnchorObject(r);
-                    if (aGo == null) continue;
-                    if (aGo == anchor.gameObject) return r;
-                    var aComp = aGo.GetComponent<RopeAnchor>();
-                    if (aComp == anchor) return r;
-                }
-            }
-            catch { }
-            return null;
-        }
-
         public const int MaxOverlays = 10;
         public const float MaxDistance = 10f; // meters
         private const float MaxDistanceSqr = MaxDistance * MaxDistance;
@@ -70,15 +50,15 @@ namespace PeakStranding.Components
 
         private readonly List<Entry> _entries = new();
         private readonly List<Entry> _visible = new();
-        private Camera _cam;
+        private Camera _cam = null!;
         private int _nextCullFrame;
 
-        private GUIStyle _labelStyle;
-        private Texture2D _bgTex;
+        private GUIStyle _labelStyle = null!;
+        private Texture2D _bgTex = Texture2D.whiteTexture;
 
         // UI scale for overlay sizing
         public static float UiScale = 1.2f;
-        public static int MaxNameChars = 18;
+        public static int MaxNameChars = 20;
 
         // Keybinds (configurable later via Plugin config if desired)
         public static KeyCode LikeKey = KeyCode.L;
@@ -86,10 +66,10 @@ namespace PeakStranding.Components
         public static float RemoveHoldSeconds = 0.6f;
 
         // Focus and hold state
-        private Entry _focused;
+        private Entry? _focused;
         private float _removeHeldTime;
         // removed global visual scale; using per-entry Entry.removeS
-        private Entry _lastFocused;
+        private Entry? _lastFocused;
 
         public struct RegisterInfo
         {
@@ -101,13 +81,13 @@ namespace PeakStranding.Components
 
         private class Entry
         {
-            public Transform t;
-            public string username;
+            public Transform t = null!;
+            public string username = string.Empty;
             public int likes;
             public ulong id;
-            public GameObject go;
+            public GameObject go = null!;
             // Like feedback
-            public System.Collections.Generic.List<Floater> floaters;
+            public System.Collections.Generic.List<Floater> floaters = new();
             public float likeTickT; // 0..1 animation timer
             // Delete-hold visual state (per-entry)
             public float removeS; // 0..1 width scale
@@ -385,7 +365,7 @@ namespace PeakStranding.Components
             foreach (var e in _visible)
             {
                 if (e.t == null) continue;
-                var wp = e.t.position + Vector3.up * 0.75f; // slight offset up
+                var wp = e.t.position + Vector3.up * 0.1f; // slight offset up
                 var sp = _cam.WorldToScreenPoint(wp);
                 if (sp.z < 0f) continue;
                 sp.y = Screen.height - sp.y;
@@ -404,11 +384,11 @@ namespace PeakStranding.Components
                     float centerRatio = Mathf.Clamp01(Mathf.Min(dx, dy));
                     // Invisible 0-70%, fade 70-90%, 90-100% fully visible
                     visibility = 0f;
-                    if (centerRatio > 0.6f && centerRatio < 0.8f)
+                    if (centerRatio > 0.5f && centerRatio < 0.7f)
                     {
-                        visibility = Mathf.Clamp01((centerRatio - 0.6f) / 0.2f);
+                        visibility = Mathf.Clamp01((centerRatio - 0.5f) / 0.2f);
                     }
-                    else if (centerRatio >= 0.8f)
+                    else if (centerRatio >= 0.7f)
                     {
                         visibility = 1f;
                     }
@@ -585,7 +565,7 @@ namespace PeakStranding.Components
             }
         }
 
-        private async void TryLike(Entry e)
+        private void TryLike(Entry e)
         {
             // Local instant feedback
             e.likes += 1;

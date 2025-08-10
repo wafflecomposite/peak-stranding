@@ -10,7 +10,7 @@ namespace PeakStranding.Patches;
 [HarmonyPatch(typeof(PhotonNetwork), nameof(PhotonNetwork.Instantiate))]
 public class PhotonInstantiatePatch
 {
-    private static void Postfix(string prefabName, Vector3 position, Quaternion rotation, byte group, object[] data = null)
+    private static void Postfix(string prefabName, Vector3 position, Quaternion rotation, byte group, object[]? data = null)
     {
         if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;

@@ -10,6 +10,8 @@ namespace PeakStranding.Patches
         private static bool Prefix(MagicBean __instance, Vector3 pos, Vector3 direction, float maxLength)
         {
             var link = __instance.GetComponent<PeakStranding.Components.MagicBeanLink>();
+            var restoredBeanFlag = __instance.GetComponent<PeakStranding.Data.RestoredItem>();
+            var restoredBean = restoredBeanFlag != null;
             if (link != null && link.vine != null)
             {
                 // Already spawned (likely due to both direct call and RPC); skip duplicate
@@ -21,6 +23,7 @@ namespace PeakStranding.Patches
             vine.transform.up = direction;
             vine.maxLength = maxLength;
             link.vine = vine;
+            link.isRestoredBean = restoredBean;
             return false; // skip original
         }
     }

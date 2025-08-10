@@ -11,11 +11,11 @@ public class ServerStructureDto
 {
     public ulong id;
     public ulong user_id;
-    public string username;
+    public string username = string.Empty;
     public int map_id;
-    public string scene;
+    public string scene = string.Empty;
     public int segment;
-    public string prefab;
+    public string prefab = string.Empty;
 
     public float pos_x, pos_y, pos_z;
     public float rot_x, rot_y, rot_z, rot_w;

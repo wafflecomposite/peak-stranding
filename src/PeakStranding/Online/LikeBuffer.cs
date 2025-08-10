@@ -15,7 +15,7 @@ namespace PeakStranding.Online
             public float LastLikeAt; // realtimeSinceStartup
         }
 
-        private static LikeBuffer _instance;
+        private static LikeBuffer? _instance;
         private readonly Dictionary<ulong, Entry> _buffer = new();
         private readonly Queue<(ulong id, int count)> _readyToSend = new();
         private float _lastSentAt = -999f;
@@ -35,7 +35,7 @@ namespace PeakStranding.Online
         {
             // if (structureId == 0) return; // local-only, nothing to send
             Ensure();
-            _instance.EnqueueInternal(structureId);
+            _instance!.EnqueueInternal(structureId);
         }
 
         private void EnqueueInternal(ulong id)

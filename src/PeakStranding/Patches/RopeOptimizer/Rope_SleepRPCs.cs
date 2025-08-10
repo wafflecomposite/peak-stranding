@@ -7,7 +7,7 @@ namespace PeakStranding.Patches
 {
     public class Rope_SleepRPCs : MonoBehaviourPun
     {
-        public Rope rope;
+        public Rope rope = null!;
 
         [PunRPC]
         private void EnterSleepState_RPC()

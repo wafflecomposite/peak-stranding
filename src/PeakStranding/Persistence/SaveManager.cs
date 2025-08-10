@@ -234,13 +234,13 @@ namespace PeakStranding
         }
 
         // --- MODIFIED: Ensured the marker is passed as an object array ---
-        public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject> onSpawned = null)
+        public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject>? onSpawned = null)
         {
             var prefabPath = itemData.PrefabName;
             if (!DataHelper.IsPrefabAllowed(prefabPath))
             {
                 Plugin.Log.LogError($"Prefab '{prefabPath}' is not allowed by the structure allow list.");
-                onSpawned?.Invoke(null);
+                onSpawned?.Invoke(default!);
                 return;
             }
 
@@ -252,14 +252,14 @@ namespace PeakStranding
                 if (prefab == null)
                 {
                     Plugin.Log.LogError($"Prefab not found in Resources: {prefabPath}");
-                    onSpawned?.Invoke(null);
+                    onSpawned?.Invoke(default!);
                     return;
                 }
                 var spawnedItem = PhotonNetwork.Instantiate(prefabPath, itemData.Position, itemData.Rotation, 0, instantiationData);
                 if (spawnedItem == null)
                 {
                     Plugin.Log.LogError($"Failed to instantiate prefab via Photon: {prefabPath}");
-                    onSpawned?.Invoke(null);
+                    onSpawned?.Invoke(default!);
                     return;
                 }
                 spawnedItem.AddComponent<RestoredItem>();
@@ -267,14 +267,6 @@ namespace PeakStranding
             }
             else if (prefabPath.StartsWith("PeakStranding/JungleVine"))
             {
-                if (itemData.RopeStart == Vector3.zero)
-                {
-                    itemData.RopeStart = itemData.from;
-                    itemData.RopeEnd = itemData.to;
-                    itemData.RopeFlyingRotation = itemData.mid;
-                    itemData.RopeLength = itemData.hang;
-                }
-
                 var spawnedItem = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, instantiationData);
                 onSpawned?.Invoke(spawnedItem);
                 var vine = spawnedItem.GetComponent<JungleVine>();
@@ -361,7 +353,7 @@ namespace PeakStranding
             else
             {
                 Plugin.Log.LogError($"Failed to instantiate some prefab: Unhandled type: {prefabPath}");
-                onSpawned?.Invoke(null);
+                onSpawned?.Invoke(default!);
             }
         }
 
