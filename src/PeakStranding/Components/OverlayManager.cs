@@ -77,6 +77,7 @@ namespace PeakStranding.Components
             public string username;
             public int likes;
             public ulong id; // server id (0 for local-only)
+            public ulong user_id;
         }
 
         private class Entry
@@ -85,6 +86,7 @@ namespace PeakStranding.Components
             public string username = string.Empty;
             public int likes;
             public ulong id;
+            public ulong user_id;
             public GameObject go = null!;
             // Like feedback
             public System.Collections.Generic.List<Floater> floaters = new();
@@ -143,7 +145,8 @@ namespace PeakStranding.Components
                     t = root.transform,
                     username = info.username ?? "",
                     likes = Mathf.Max(0, info.likes),
-                    id = info.id
+                    id = info.id,
+                    user_id = info.user_id
                 });
                 return;
             }
@@ -167,7 +170,8 @@ namespace PeakStranding.Components
                                 t = root.transform,
                                 username = info.username ?? "",
                                 likes = Mathf.Max(0, info.likes),
-                                id = info.id
+                                id = info.id,
+                                user_id = info.user_id
                             });
                         }
                         return;
@@ -183,7 +187,8 @@ namespace PeakStranding.Components
                 t = info.target.transform,
                 username = info.username ?? "",
                 likes = Mathf.Max(0, info.likes),
-                id = info.id
+                id = info.id,
+                user_id = info.user_id
             });
         }
 
@@ -567,6 +572,12 @@ namespace PeakStranding.Components
 
         private void TryLike(Entry e)
         {
+            // Prevent liking one's own structure
+            if (e.user_id != 0 && e.user_id == Steamworks.SteamUser.GetSteamID().m_SteamID)
+            {
+                Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
+                return;
+            }
             // Local instant feedback
             e.likes += 1;
             // Spawn floater and start likes tick

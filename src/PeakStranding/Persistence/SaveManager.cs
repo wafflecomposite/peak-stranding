@@ -30,7 +30,7 @@ namespace PeakStranding
         };
 
         // Cache per segment structures with metadata: username label, server id, likes
-        private static readonly Dictionary<int, List<(PlacedItemData data, string label, ulong id, int likes)>> CachedStructures = new();
+        private static readonly Dictionary<int, List<(PlacedItemData data, string label, ulong id, int likes, ulong user_id)>> CachedStructures = new();
         private static readonly Dictionary<int, List<GameObject>> SpawnedInstances = new();
 
         private static string GetSaveFilePath(int mapId)
@@ -104,10 +104,10 @@ namespace PeakStranding
             {
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int, ulong)>();
                 }
                 // Local structures have no server id and zero likes
-                CachedStructures[itemData.MapSegment].Add((itemData, "You", 0UL, 0));
+                CachedStructures[itemData.MapSegment].Add((itemData, "You", 0UL, 0, Steamworks.SteamUser.GetSteamID().m_SteamID));
             }
         }
 
@@ -124,9 +124,9 @@ namespace PeakStranding
                 var itemData = item.ToPlacedItemData();
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int, ulong)>();
                 }
-                CachedStructures[itemData.MapSegment].Add((itemData, item.username, item.id, item.likes));
+                CachedStructures[itemData.MapSegment].Add((itemData, item.username, item.id, item.likes, item.user_id));
             }
         }
 
@@ -143,7 +143,7 @@ namespace PeakStranding
             try
             {
                 Plugin.Log.LogInfo($"Spawning {itemsToSpawn.Count} structures for segment {segmentIndex}.");
-                foreach (var (itemData, label, id, likes) in itemsToSpawn)
+                foreach (var (itemData, label, id, likes, user_id) in itemsToSpawn)
                 {
                     SpawnItem(itemData, label, (spawnedGo) =>
                     {
@@ -165,7 +165,8 @@ namespace PeakStranding
                                 target = spawnedGo,
                                 username = label,
                                 likes = likes,
-                                id = id
+                                id = id,
+                                user_id = user_id
                             });
                         }
                     });
