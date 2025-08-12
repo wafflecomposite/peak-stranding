@@ -6,7 +6,6 @@ using PeakStranding.Data;
 using PeakStranding.Online;
 using Photon.Pun;
 using Photon.Realtime;
-using ExitGames.Client.Photon;
 using UnityEngine;
 
 namespace PeakStranding.Components
@@ -17,11 +16,10 @@ namespace PeakStranding.Components
     /// such as usernames, likes, and server IDs.
     /// </summary>
     [RequireComponent(typeof(PhotonView))]
-    public class PeakStrandingSyncManager : MonoBehaviourPunCallbacks, IOnEventCallback
+    public class PeakStrandingSyncManager : MonoBehaviourPunCallbacks
     {
-        const byte RegisterStructureEvent = 1;
-        const byte RequestLikeEvent = 2;
-        const byte RequestRemoveEvent = 3;
+        private const int ViewIdSubId = 999;
+
         public static PeakStrandingSyncManager? Instance { get; private set; }
 
         private void Awake()
@@ -34,86 +32,20 @@ namespace PeakStranding.Components
             Instance = this;
         }
 
-        // Event code used when PhotonView on the manager cannot be relied on for RPCs.
-
-        public override void OnEnable()
+        private void SetupView()
         {
-            PhotonNetwork.AddCallbackTarget(this);
+            if (photonView != null && photonView.ViewID == 0 && PhotonNetwork.InRoom)
+            {
+                int viewId = PhotonNetwork.MasterClient.ActorNumber * PhotonNetwork.MAX_VIEW_IDS + ViewIdSubId;
+                photonView.ViewID = viewId;
+                PhotonNetwork.RegisterPhotonView(photonView);
+            }
         }
 
-        public override void OnDisable()
+        public override void OnJoinedRoom()
         {
-            PhotonNetwork.RemoveCallbackTarget(this);
-        }
-
-        // Handle incoming RaiseEvent calls for structure registration and client->host requests
-        public void OnEvent(EventData photonEvent)
-        {
-            if (photonEvent == null) return;
-
-            try
-            {
-                var code = photonEvent.Code;
-                var data = photonEvent.CustomData as object[];
-
-                if (code == RegisterStructureEvent)
-                {
-                    if (data == null) return;
-                    int viewId = (int)data[0];
-                    string username = (string)data[1];
-                    int likes = (int)data[2];
-                    string serverIdStr = (string)data[3];
-                    string userIdStr = (string)data[4];
-                    // Reuse existing RPC handler logic locally
-                    RegisterStructure_RPC(viewId, username, likes, serverIdStr, userIdStr);
-                    return;
-                }
-
-                if (code == RequestLikeEvent)
-                {
-                    if (!PhotonNetwork.IsMasterClient) return;
-                    if (data == null || data.Length == 0) return;
-                    int viewId = (int)data[0];
-                    var view = PhotonView.Find(viewId);
-                    if (view == null) return;
-                    var entry = OverlayManager.Instance.FindEntry(view.gameObject);
-                    if (entry != null)
-                    {
-                        entry.likes++;
-                        if (entry.id != 0)
-                        {
-                            LikeBuffer.Enqueue(entry.id);
-                        }
-
-                        // Broadcast like update to all clients
-                        if (photonView != null && photonView.ViewID != 0)
-                        {
-                            photonView.RPC(nameof(UpdateLikes_RPC), RpcTarget.All, viewId, entry.likes);
-                        }
-                        else
-                        {
-                            // Fallback: locally update overlay; others will eventually sync via full sync or other mechanisms
-                            OverlayManager.Instance.UpdateLikes(view.gameObject, entry.likes);
-                        }
-                    }
-                    return;
-                }
-
-                if (code == RequestRemoveEvent)
-                {
-                    if (!PhotonNetwork.IsMasterClient) return;
-                    if (data == null || data.Length == 0) return;
-                    int viewId = (int)data[0];
-                    var view = PhotonView.Find(viewId);
-                    if (view == null) return;
-                    DeletionUtility.Delete(view.gameObject);
-                    return;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Plugin.Log.LogError($"Failed to handle Photon event: {ex.Message}");
-            }
+            base.OnJoinedRoom();
+            SetupView();
         }
 
         public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
@@ -154,7 +86,7 @@ namespace PeakStranding.Components
             {
                 bf.Serialize(ms, syncData);
                 var data = ms.ToArray();
-                photonView.RPC(nameof(ReceiveFullSync_RPC), targetPlayer, new object[] { data });
+                photonView.RPC(nameof(ReceiveFullSync_RPC), targetPlayer, data);
             }
         }
 
@@ -196,9 +128,6 @@ namespace PeakStranding.Components
         {
             if (!PhotonNetwork.IsMasterClient) yield break;
 
-            // Do not block forever for the manager's PhotonView. We always use RaiseEvent for registration,
-            // so there's no need to log a warning here.
-
             if (go == null)
             {
                 Plugin.Log.LogWarning("Attempted to register a null GameObject. Skipping.");
@@ -212,7 +141,6 @@ namespace PeakStranding.Components
                 yield break;
             }
 
-            // Wait for the spawned object's view to be ready
             float waitStartTime = Time.time;
             while (pv.ViewID == 0)
             {
@@ -221,26 +149,15 @@ namespace PeakStranding.Components
                     Plugin.Log.LogError($"Timed out waiting for PhotonView ID on {go.name}. Aborting registration.");
                     yield break;
                 }
-                // Plugin.Log.LogInfo($"Waiting for ViewID on spawned object {go.name}...");
                 yield return null;
             }
 
-            // Always use a RaiseEvent for structure registration to avoid depending on the manager's PhotonView.
-            // This avoids Illegal view ID errors during early initialization.
-            var payload = new object[] { pv.ViewID, username, likes, serverId.ToString(), userId.ToString() };
-            var options = new RaiseEventOptions { Receivers = ReceiverGroup.Others };
-            var sendOptions = new ExitGames.Client.Photon.SendOptions { Reliability = true };
-            PhotonNetwork.RaiseEvent(RegisterStructureEvent, payload, options, sendOptions);
+            photonView.RPC(nameof(RegisterStructure_RPC), RpcTarget.Others, pv.ViewID, username, likes, (long)serverId, (long)userId);
         }
 
         [PunRPC]
-        private void RegisterStructure_RPC(int viewId, string username, int likes, string serverIdStr, string userIdStr)
+        private void RegisterStructure_RPC(int viewId, string username, int likes, long serverId, long userId)
         {
-            if (!ulong.TryParse(serverIdStr, out var serverId) || !ulong.TryParse(userIdStr, out var userId))
-            {
-                Plugin.Log.LogError($"Failed to parse serverId '{serverIdStr}' or userId '{userIdStr}' from RPC.");
-                return;
-            }
             var view = PhotonView.Find(viewId);
             if (view != null)
             {
@@ -249,8 +166,8 @@ namespace PeakStranding.Components
                     target = view.gameObject,
                     username = username,
                     likes = likes,
-                    id = serverId,
-                    user_id = userId
+                    id = (ulong)serverId,
+                    user_id = (ulong)userId
                 });
             }
         }
