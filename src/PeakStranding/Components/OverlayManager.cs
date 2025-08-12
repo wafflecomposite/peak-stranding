@@ -594,6 +594,20 @@ namespace PeakStranding.Components
 
         private void TryLike(Entry e)
         {
+            // Local instant feedback
+            e.likes += 1;
+            // Spawn floater and start likes tick
+            if (e.floaters == null) e.floaters = new System.Collections.Generic.List<Floater>(4);
+            var f = new Floater
+            {
+                t = 0f,
+                duration = 0.5f,
+                xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
+                scale = UnityEngine.Random.Range(0.9f, 1.1f)
+            };
+            e.floaters.Add(f);
+            e.likeTickT = 1f;
+
             // On the host, this works as before.
             if (PhotonNetwork.IsMasterClient)
             {
@@ -603,20 +617,6 @@ namespace PeakStranding.Components
                     Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
                     return;
                 }
-                // Local instant feedback
-                e.likes += 1;
-                // Spawn floater and start likes tick
-                if (e.floaters == null) e.floaters = new System.Collections.Generic.List<Floater>(4);
-                var f = new Floater
-                {
-                    t = 0f,
-                    duration = 0.5f,
-                    xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
-                    scale = UnityEngine.Random.Range(0.9f, 1.1f)
-                };
-                e.floaters.Add(f);
-                e.likeTickT = 1f;
-                // Buffer the like for network dispatch (handles batching and throttling)
 
                 if (e.id != 0)
                 {

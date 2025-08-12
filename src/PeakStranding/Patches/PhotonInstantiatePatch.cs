@@ -15,7 +15,7 @@ public class PhotonInstantiatePatch
         if (!PhotonNetwork.IsMasterClient) return;
         if (SaveManager.IsRestoring) return;
         if (data?.Length > 0 && data[0] as string == SaveManager.RESTORED_ITEM_MARKER) return;
-        // Debug.Log($"[PhotonNetwork.Instantiate] Prefab: {prefabName}, Position: {position}, Rotation: {rotation}, Group: {group}");
+        // Debug.Log($"[PhotonNetwork.Instantiate] Prefab: '{prefabName}', Position: {position}, Rotation: {rotation}, Group: {group}");
 
         string[] basicSpawnable =
         {
@@ -24,7 +24,8 @@ public class PhotonInstantiatePatch
             "0_Items/BounceShroomSpawn",
             "Flag_planted_seagull",
             "Flag_planted_turtle",
-            "PortableStovetop_Placed"
+            "PortableStovetop_Placed",
+            "ScoutCannon_Placed"
         };
 
         if (Array.Exists(basicSpawnable, p => p == prefabName))

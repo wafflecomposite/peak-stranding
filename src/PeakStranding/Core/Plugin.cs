@@ -115,7 +115,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
             "0_Items/BounceShroomSpawn",
             "Flag_planted_seagull",
             "Flag_planted_turtle",
-            "PortableStovetop_Placed"
+            "PortableStovetop_Placed",
+            "ScoutCannon_Placed",
         };
         // Debug.Log($"[PeakStranding] It was {prefabName}");
         if (!Array.Exists(basicSpawnable, p => p == prefabName)) return;
