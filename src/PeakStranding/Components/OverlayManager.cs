@@ -47,7 +47,7 @@ namespace PeakStranding.Components
         private const int ThrottleFrames = 10; // recompute culling every N frames
 
         // Debug: show all overlays always (no limits, no edge fade). Toggle before build.
-        public static bool DebugShowAll = true;
+        public static bool DebugShowAll = false;
 
         private readonly List<Entry> _entries = new();
         private readonly List<Entry> _visible = new();
