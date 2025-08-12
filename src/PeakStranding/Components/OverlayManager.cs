@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using PeakStranding.Online;
 using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
 using System.Reflection;
+using ExitGames.Client.Photon;
 
 namespace PeakStranding.Components
 {
@@ -46,7 +48,7 @@ namespace PeakStranding.Components
         private const int ThrottleFrames = 10; // recompute culling every N frames
 
         // Debug: show all overlays always (no limits, no edge fade). Toggle before build.
-        public static bool DebugShowAll = false;
+        public static bool DebugShowAll = true;
 
         private readonly List<Entry> _entries = new();
         private readonly List<Entry> _visible = new();
@@ -80,7 +82,8 @@ namespace PeakStranding.Components
             public ulong user_id;
         }
 
-        private class Entry
+        // Made public to be accessible by the sync manager
+        public class Entry
         {
             public Transform t = null!;
             public string username = string.Empty;
@@ -96,7 +99,7 @@ namespace PeakStranding.Components
             public bool removing; // hard lock to deletion visuals to avoid 1-frame pop
         }
 
-        private struct Floater
+        public struct Floater
         {
             public float t;           // elapsed time
             public float duration;    // total lifetime
@@ -197,6 +200,26 @@ namespace PeakStranding.Components
             if (target == null || _instance == null) return;
             _instance._entries.RemoveAll(e => e.go == target);
             _instance._visible.RemoveAll(e => e.go == target);
+        }
+
+        public List<Entry> GetAllEntriesForSync()
+        {
+            // Return a copy to prevent external modification
+            return new List<Entry>(_entries);
+        }
+
+        public void UpdateLikes(GameObject target, int newLikeCount)
+        {
+            var entry = _entries.FirstOrDefault(e => e.go == target);
+            if (entry != null)
+            {
+                entry.likes = newLikeCount;
+            }
+        }
+
+        public Entry FindEntry(GameObject target)
+        {
+            return _entries.FirstOrDefault(e => e.go == target);
         }
 
         private void Update()
@@ -572,34 +595,58 @@ namespace PeakStranding.Components
 
         private void TryLike(Entry e)
         {
-            // Prevent liking one's own structure
-            if (e.user_id != 0 && e.user_id == Steamworks.SteamUser.GetSteamID().m_SteamID)
+            // On the host, this works as before.
+            if (PhotonNetwork.IsMasterClient)
             {
-                Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
-                return;
-            }
-            // Local instant feedback
-            e.likes += 1;
-            // Spawn floater and start likes tick
-            if (e.floaters == null) e.floaters = new System.Collections.Generic.List<Floater>(4);
-            var f = new Floater
-            {
-                t = 0f,
-                duration = 0.5f,
-                xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
-                scale = UnityEngine.Random.Range(0.9f, 1.1f)
-            };
-            e.floaters.Add(f);
-            e.likeTickT = 1f;
-            // Buffer the like for network dispatch (handles batching and throttling)
+                // Prevent liking one's own structure
+                if (e.user_id != 0 && e.user_id == Steamworks.SteamUser.GetSteamID().m_SteamID)
+                {
+                    Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
+                    return;
+                }
+                // Local instant feedback
+                e.likes += 1;
+                // Spawn floater and start likes tick
+                if (e.floaters == null) e.floaters = new System.Collections.Generic.List<Floater>(4);
+                var f = new Floater
+                {
+                    t = 0f,
+                    duration = 0.5f,
+                    xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
+                    scale = UnityEngine.Random.Range(0.9f, 1.1f)
+                };
+                e.floaters.Add(f);
+                e.likeTickT = 1f;
+                // Buffer the like for network dispatch (handles batching and throttling)
 
-            if (e.id != 0)
-            {
-                LikeBuffer.Enqueue(e.id);
+                if (e.id != 0)
+                {
+                    LikeBuffer.Enqueue(e.id);
+                }
+                else
+                {
+                    Plugin.Log.LogInfo("Cannot like local-only structure (structure id 0).");
+                }
             }
-            else
+            else // On the client, send a request to the host.
             {
-                Plugin.Log.LogInfo("Cannot like local-only structure (structure id 0).");
+                if (e.go != null && e.go.GetPhotonView() != null && PeakStrandingSyncManager.Instance != null)
+                {
+                    var manager = PeakStrandingSyncManager.Instance;
+                    var viewId = e.go.GetPhotonView().ViewID;
+                    if (manager.photonView != null && manager.photonView.ViewID != 0)
+                    {
+                        manager.photonView.RPC("RequestLike_RPC", RpcTarget.MasterClient, viewId);
+                    }
+                    else
+                    {
+                        // Fallback to RaiseEvent if manager's PhotonView isn't ready
+                        var payload = new object[] { viewId };
+                        var options = new RaiseEventOptions { Receivers = ReceiverGroup.MasterClient };
+                        var sendOptions = new SendOptions { Reliability = true };
+                        PhotonNetwork.RaiseEvent(201, payload, options, sendOptions);
+                    }
+                }
             }
         }
 
@@ -610,8 +657,31 @@ namespace PeakStranding.Components
             // Lock deletion visuals to avoid last-frame pop
             e.removing = true;
             e.removeS = 0f;
-            // Delegate deletion to utility for consistent behavior
-            DeletionUtility.Delete(e.go);
+
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // Delegate deletion to utility for consistent behavior
+                DeletionUtility.Delete(e.go);
+            }
+            else
+            {
+                if (e.go.GetPhotonView() != null && PeakStrandingSyncManager.Instance != null)
+                {
+                    var manager = PeakStrandingSyncManager.Instance;
+                    var viewId = e.go.GetPhotonView().ViewID;
+                    if (manager.photonView != null && manager.photonView.ViewID != 0)
+                    {
+                        manager.photonView.RPC("RequestRemove_RPC", RpcTarget.MasterClient, viewId);
+                    }
+                    else
+                    {
+                        var payload = new object[] { viewId };
+                        var options = new RaiseEventOptions { Receivers = ReceiverGroup.MasterClient };
+                        var sendOptions = new SendOptions { Reliability = true };
+                        PhotonNetwork.RaiseEvent(202, payload, options, sendOptions);
+                    }
+                }
+            }
         }
     }
 }

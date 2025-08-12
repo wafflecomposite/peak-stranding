@@ -90,6 +90,7 @@ namespace PeakStranding
 
         public static void CacheLocalStructures()
         {
+            if (!PhotonNetwork.IsMasterClient) return;
             var mapId = DataHelper.GetCurrentLevelIndex();
             var allItems = GetSavedItemsForSeed(mapId);
             var itemsToLoad = allItems;
@@ -113,6 +114,7 @@ namespace PeakStranding
 
         public static void CacheRemoteStructures(List<ServerStructureDto> items)
         {
+            if (!PhotonNetwork.IsMasterClient) return;
             if (items == null || items.Count == 0)
             {
                 Plugin.Log.LogInfo("No remote structures to cache.");
@@ -147,7 +149,11 @@ namespace PeakStranding
                 {
                     SpawnItem(itemData, label, (spawnedGo) =>
                     {
-                        if (spawnedGo == null) return;
+                        if (spawnedGo == null)
+                        {
+                            Plugin.Log.LogWarning("SpawnItem resulted in a null GameObject. Skipping registration.");
+                            return;
+                        }
                         if (!SpawnedInstances.ContainsKey(segmentIndex))
                         {
                             SpawnedInstances[segmentIndex] = new List<GameObject>();
@@ -168,6 +174,21 @@ namespace PeakStranding
                                 id = id,
                                 user_id = user_id
                             });
+                            PeakStrandingSyncManager.Instance?.RegisterNewStructure(spawnedGo, label, likes, id, user_id);
+                            // Try to notify clients about the new structure
+                            /*try
+                            {
+                                Plugin.Log.LogInfo($"Trying to register: {spawnedGo}");
+                                if (PhotonNetwork.IsMasterClient)
+                                {
+                                    PeakStrandingSyncManager.Instance?.RegisterNewStructure(spawnedGo, label, likes, id, user_id);
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                Plugin.Log.LogInfo($"Failed to register: {spawnedGo}");
+                            }*/
+
                         }
                     });
                 }
