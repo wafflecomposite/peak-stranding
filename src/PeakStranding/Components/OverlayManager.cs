@@ -645,8 +645,8 @@ namespace PeakStranding.Components
             if (e.go == null) return;
 
             // Lock deletion visuals to avoid last-frame pop
-            e.removing = true;
-            e.removeS = 0f;
+            //e.removing = true;
+            //e.removeS = 0f;
 
             if (PhotonNetwork.IsMasterClient)
             {

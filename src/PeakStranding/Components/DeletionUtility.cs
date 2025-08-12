@@ -26,6 +26,11 @@ namespace PeakStranding.Components
         public static void Delete(GameObject go)
         {
             if (go == null) return;
+            if (go.name.Contains("ChainShootable"))
+            {
+                Plugin.Log.LogInfo("We are NOT deleting the Chain. Like NO. Main game bugs.");
+                return;
+            }
 
             // If there's a DeletableGroup, invoke its RPC (grouped deletion)
             var group = go.GetComponentInParent<DeletableGroup>();
