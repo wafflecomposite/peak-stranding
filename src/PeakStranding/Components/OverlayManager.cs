@@ -6,7 +6,6 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 using System.Reflection;
-using ExitGames.Client.Photon;
 
 namespace PeakStranding.Components
 {
@@ -638,14 +637,6 @@ namespace PeakStranding.Components
                     {
                         manager.photonView.RPC("RequestLike_RPC", RpcTarget.MasterClient, viewId);
                     }
-                    else
-                    {
-                        // Fallback to RaiseEvent if manager's PhotonView isn't ready
-                        var payload = new object[] { viewId };
-                        var options = new RaiseEventOptions { Receivers = ReceiverGroup.MasterClient };
-                        var sendOptions = new SendOptions { Reliability = true };
-                        PhotonNetwork.RaiseEvent(201, payload, options, sendOptions);
-                    }
                 }
             }
         }
@@ -672,13 +663,6 @@ namespace PeakStranding.Components
                     if (manager.photonView != null && manager.photonView.ViewID != 0)
                     {
                         manager.photonView.RPC("RequestRemove_RPC", RpcTarget.MasterClient, viewId);
-                    }
-                    else
-                    {
-                        var payload = new object[] { viewId };
-                        var options = new RaiseEventOptions { Receivers = ReceiverGroup.MasterClient };
-                        var sendOptions = new SendOptions { Reliability = true };
-                        PhotonNetwork.RaiseEvent(202, payload, options, sendOptions);
                     }
                 }
             }

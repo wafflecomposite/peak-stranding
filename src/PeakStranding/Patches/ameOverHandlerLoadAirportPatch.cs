@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Photon.Pun;
+using PeakStranding.Components;
 
 namespace PeakStranding.Patches
 {
@@ -9,6 +10,8 @@ namespace PeakStranding.Patches
         [HarmonyPrefix]
         private static void Prefix()
         {
+            PeakStrandingSyncManager.DestroyInstance();
+
             if (PhotonNetwork.IsMasterClient)
             {
                 Plugin.Log.LogInfo("Run is over, cleaning up all spawned structures and buffered RPCs.");

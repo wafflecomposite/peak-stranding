@@ -3,7 +3,6 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using PeakStranding.Components;
 using PeakStranding.Data;
 using Photon.Pun;
 using Photon.Realtime;
@@ -67,9 +66,6 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
 
         //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();
-        var syncManagerObj = new GameObject("PeakStranding Sync Manager");
-        syncManagerObj.AddComponent<PeakStrandingSyncManager>();
-        DontDestroyOnLoad(syncManagerObj);
 
         PhotonNetwork.AddCallbackTarget(this);
         Log.LogInfo($"Plugin {Name} is patching...");

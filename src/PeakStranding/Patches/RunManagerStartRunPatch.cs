@@ -2,6 +2,7 @@ using System.Collections;
 using HarmonyLib;
 using PeakStranding.Data;
 using PeakStranding.Online;
+using PeakStranding.Components;
 using Photon.Pun;
 using UnityEngine;
 
@@ -12,6 +13,11 @@ public class RunManagerStartRunPatch
 {
     private static void Postfix(RunManager __instance)
     {
+        if (__instance.GetComponent<PeakStrandingSyncManager>() == null)
+        {
+            __instance.gameObject.AddComponent<PeakStrandingSyncManager>();
+        }
+
         if (!PhotonNetwork.IsMasterClient)
         {
             Plugin.Log.LogInfo("New run started as a CLIENT, structures will be synced by the host.");
@@ -19,7 +25,6 @@ public class RunManagerStartRunPatch
         }
 
         Plugin.Log.LogInfo("New run started as a HOST. Caching structures.");
-
 
         SaveManager.ClearCache(); // Clear data from any previous run
 
