@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using ExitGames.Client.Photon;
 using PeakStranding.Data;
 using PeakStranding.Online;
 using Photon.Pun;
@@ -19,39 +18,12 @@ namespace PeakStranding.Components
     [RequireComponent(typeof(PhotonView))]
     public class PeakStrandingSyncManager : MonoBehaviourPunCallbacks
     {
-        public const string ViewIdRoomProp = "PS_SyncViewID";
-
         public static PeakStrandingSyncManager? Instance { get; private set; }
-
-        public static void Create(bool isMaster, int? viewIdOverride = null)
-        {
-            if (Instance != null) return;
-
-            var go = new GameObject("PeakStranding Sync Manager");
-            DontDestroyOnLoad(go);
-            var manager = go.AddComponent<PeakStrandingSyncManager>();
-            var pv = go.GetComponent<PhotonView>();
-
-            if (isMaster)
-            {
-                int viewId = PhotonNetwork.AllocateViewID();
-                pv.ViewID = viewId;
-                PhotonNetwork.RegisterPhotonView(pv);
-                var props = new Hashtable { { ViewIdRoomProp, viewId } };
-                PhotonNetwork.CurrentRoom.SetCustomProperties(props);
-            }
-            else if (viewIdOverride.HasValue)
-            {
-                pv.ViewID = viewIdOverride.Value;
-                PhotonNetwork.RegisterPhotonView(pv);
-            }
-        }
 
         public static void DestroyInstance()
         {
             if (Instance == null) return;
-            PhotonNetwork.UnregisterPhotonView(Instance.photonView);
-            Destroy(Instance.gameObject);
+            Destroy(Instance);
             Instance = null;
         }
 
@@ -63,6 +35,14 @@ namespace PeakStranding.Components
                 return;
             }
             Instance = this;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)

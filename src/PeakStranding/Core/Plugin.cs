@@ -3,18 +3,15 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using PeakStranding.Components;
 using PeakStranding.Data;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
-using ExitGames.Client.Photon;
-using System.Collections.Generic;
 
 namespace PeakStranding;
 
 [BepInAutoPlugin]
-public partial class Plugin : BaseUnityPlugin, IOnEventCallback, IConnectionCallbacks, IInRoomCallbacks
+public partial class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -94,7 +91,6 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback, IConnectionCall
     private void OnDestroy()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
-        PeakStrandingSyncManager.DestroyInstance();
     }
 
     public void OnEvent(ExitGames.Client.Photon.EventData photonEvent)
@@ -135,52 +131,5 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback, IConnectionCall
         SaveManager.SaveItem(itemData);
     }
 
-    // Photon callbacks to manage the sync manager lifetime
-    public void OnJoinedRoom()
-    {
-        if (PhotonNetwork.IsMasterClient)
-        {
-            PeakStrandingSyncManager.Create(true);
-        }
-        else if (PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue(PeakStrandingSyncManager.ViewIdRoomProp, out var id) && id is int viewId)
-        {
-            PeakStrandingSyncManager.Create(false, viewId);
-        }
-    }
 
-    public void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
-    {
-        if (PhotonNetwork.IsMasterClient) return;
-        if (propertiesThatChanged.TryGetValue(PeakStrandingSyncManager.ViewIdRoomProp, out var id) && id is int viewId)
-        {
-            if (PeakStrandingSyncManager.Instance == null)
-            {
-                PeakStrandingSyncManager.Create(false, viewId);
-            }
-        }
-    }
-
-    public void OnLeftRoom()
-    {
-        PeakStrandingSyncManager.DestroyInstance();
-    }
-
-    // Unused interface methods
-    public void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer) { }
-    public void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer) { }
-    public void OnPlayerPropertiesUpdate(Photon.Realtime.Player targetPlayer, Hashtable changedProps) { }
-    public void OnMasterClientSwitched(Photon.Realtime.Player newMasterClient) { }
-    public void OnConnected() { }
-    public void OnConnectedToMaster() { }
-    public void OnDisconnected(DisconnectCause cause) { }
-    public void OnRegionListReceived(RegionHandler regionHandler) { }
-    public void OnCustomAuthenticationResponse(Dictionary<string, object> data) { }
-    public void OnCustomAuthenticationFailed(string debugMessage) { }
-    public void OnJoinedLobby() { }
-    public void OnLeftLobby() { }
-    public void OnFriendListUpdate(List<FriendInfo> friendList) { }
-    public void OnCreatedRoom() { }
-    public void OnCreateRoomFailed(short returnCode, string message) { }
-    public void OnJoinRoomFailed(short returnCode, string message) { }
-    public void OnJoinRandomFailed(short returnCode, string message) { }
 }
