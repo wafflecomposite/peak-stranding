@@ -26,6 +26,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     // internal static ConfigEntry<bool> showToastsConfig;
     internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig = null!;
     internal static ConfigEntry<string> structureAllowListConfig = null!;
+    internal static ConfigEntry<bool> allowClientsLikeConfig = null!;
+    internal static ConfigEntry<bool> allowClientsDeleteConfig = null!;
 
 
     public static bool CfgLocalSaveStructures => saveStructuresLocallyConfig.Value;
@@ -38,6 +40,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     public static bool CfgShowStructureCredits => showStructureCreditsConfig.Value;
     public static bool CfgRopeOptimizerExperimental => ropeOptimizerExperimentalConfig.Value;
     public static string CfgStructureAllowList => structureAllowListConfig.Value;
+    public static bool CfgAllowClientLike => allowClientsLikeConfig.Value;
+    public static bool CfgAllowClientDelete => allowClientsDeleteConfig.Value;
     // public static bool CfgShowToasts => showToastsConfig.Value;
 
     private void Awake()
@@ -64,6 +68,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", true,
             "Enable experimental optimizations for the ropes.");
         remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
+        allowClientsLikeConfig = Config.Bind("Online", "Allow_Clients_Like", true, "Allow clients to like structures.");
+        allowClientsDeleteConfig = Config.Bind("Online", "Allow_Clients_Delete", true, "Allow clients to delete structures.");
 
         //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();
 

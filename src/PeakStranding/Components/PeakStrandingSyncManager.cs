@@ -24,6 +24,9 @@ namespace PeakStranding.Components
         // Keys are Photon actor numbers.
         private readonly HashSet<int> _readyPlayers = new();
 
+        private readonly Dictionary<int, int> _runLikeCounts = new();
+        public const int MaxLikesPerRun = 100;
+
         public static void DestroyInstance()
         {
             if (Instance == null) return;
@@ -64,6 +67,11 @@ namespace PeakStranding.Components
             _readyPlayers.Remove(otherPlayer.ActorNumber);
         }
 
+        public void ResetRunLikes()
+        {
+            _runLikeCounts.Clear();
+        }
+
         public void SyncAllStructuresToPlayer(Photon.Realtime.Player targetPlayer)
         {
             if (!PhotonNetwork.IsMasterClient) return;
@@ -71,13 +79,18 @@ namespace PeakStranding.Components
             var allEntries = OverlayManager.Instance.GetAllEntriesForSync();
             var syncData = allEntries
                 .Where(e => e.go != null && e.go.GetPhotonView() != null) // Ensure GO and PV exist
-                .Select(e => new StructureSyncData
+                .Select(e =>
                 {
-                    ViewID = e.go.GetPhotonView().ViewID,
-                    Username = e.username,
-                    Likes = e.likes,
-                    ServerId = e.id,
-                    UserId = e.user_id
+                    int viewId = e.go.GetPhotonView().ViewID;
+                    return new StructureSyncData
+                    {
+                        ViewID = viewId,
+                        Username = e.username,
+                        Likes = e.likes,
+                        ServerId = e.id,
+                        UserId = e.user_id,
+                        LikeEnabled = !_runLikeCounts.TryGetValue(viewId, out var count) || count < MaxLikesPerRun
+                    };
                 }).ToList();
 
             if (syncData.Count == 0)
@@ -115,7 +128,8 @@ namespace PeakStranding.Components
                             username = syncData.Username ?? "",
                             likes = syncData.Likes,
                             id = syncData.ServerId,
-                            user_id = syncData.UserId
+                            user_id = syncData.UserId,
+                            canLike = syncData.LikeEnabled
                         });
                     }
                 }
@@ -162,13 +176,14 @@ namespace PeakStranding.Components
             {
                 if (_readyPlayers.Contains(player.ActorNumber))
                 {
-                    photonView.RPC(nameof(RegisterStructure_RPC), player, pv.ViewID, username, likes, (long)serverId, (long)userId);
+                    bool canLike = !_runLikeCounts.TryGetValue(pv.ViewID, out var count) || count < MaxLikesPerRun;
+                    photonView.RPC(nameof(RegisterStructure_RPC), player, pv.ViewID, username, likes, (long)serverId, (long)userId, canLike);
                 }
             }
         }
 
         [PunRPC]
-        private void RegisterStructure_RPC(int viewId, string username, int likes, long serverId, long userId)
+        private void RegisterStructure_RPC(int viewId, string username, int likes, long serverId, long userId, bool canLike)
         {
             var view = PhotonView.Find(viewId);
             if (view != null)
@@ -179,18 +194,9 @@ namespace PeakStranding.Components
                     username = username,
                     likes = likes,
                     id = (ulong)serverId,
-                    user_id = (ulong)userId
+                    user_id = (ulong)userId,
+                    canLike = canLike
                 });
-            }
-        }
-
-        [PunRPC]
-        private void UpdateLikes_RPC(int viewId, int newLikeCount)
-        {
-            var view = PhotonView.Find(viewId);
-            if (view != null)
-            {
-                OverlayManager.Instance.UpdateLikes(view.gameObject, newLikeCount);
             }
         }
 
@@ -200,32 +206,54 @@ namespace PeakStranding.Components
         private void RequestLike_RPC(int viewId, PhotonMessageInfo info)
         {
             if (!PhotonNetwork.IsMasterClient) return;
+            if (info.Sender != PhotonNetwork.MasterClient && !Plugin.CfgAllowClientLike) return;
+            ApplyLike(viewId, info.Sender);
+        }
 
+        public void RequestLikeFromHost(int viewId)
+        {
+            if (!PhotonNetwork.IsMasterClient) return;
+            ApplyLike(viewId, PhotonNetwork.MasterClient);
+        }
+
+        private void ApplyLike(int viewId, Photon.Realtime.Player sender)
+        {
             var view = PhotonView.Find(viewId);
             if (view == null) return;
 
-            // Additional validation can be added here (e.g., prevent like spam)
-
             var entry = OverlayManager.Instance.FindEntry(view.gameObject);
-            if (entry != null)
+            if (entry == null) return;
+
+            // Prevent liking one's own structure
+            if (sender == PhotonNetwork.MasterClient && entry.user_id != 0 && entry.user_id == Steamworks.SteamUser.GetSteamID().m_SteamID)
             {
-                entry.likes++;
-                if (entry.id != 0)
-                {
-                    LikeBuffer.Enqueue(entry.id);
-                }
+                Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
+                return;
+            }
 
-                // Update the host locally
-                OverlayManager.Instance.UpdateLikes(view.gameObject, entry.likes);
+            if (!_runLikeCounts.TryGetValue(viewId, out var runCount)) runCount = 0;
+            if (runCount >= MaxLikesPerRun) return;
+            runCount++;
+            _runLikeCounts[viewId] = runCount;
 
-                // Broadcast the update to ready clients
-                foreach (var player in PhotonNetwork.PlayerListOthers)
-                {
-                    if (_readyPlayers.Contains(player.ActorNumber))
-                    {
-                        photonView.RPC(nameof(UpdateLikes_RPC), player, viewId, entry.likes);
-                    }
-                }
+            entry.likes++;
+            if (entry.id != 0)
+            {
+                LikeBuffer.Enqueue(entry.id);
+            }
+
+            bool canLikeMore = runCount < MaxLikesPerRun;
+
+            photonView.RPC(nameof(LikeBroadcast_RPC), RpcTarget.All, viewId, entry.likes, canLikeMore);
+        }
+
+        [PunRPC]
+        private void LikeBroadcast_RPC(int viewId, int newLikeCount, bool canLike)
+        {
+            var view = PhotonView.Find(viewId);
+            if (view != null)
+            {
+                OverlayManager.Instance.ApplyLikeBroadcast(view.gameObject, newLikeCount, canLike);
             }
         }
 
@@ -233,6 +261,7 @@ namespace PeakStranding.Components
         private void RequestRemove_RPC(int viewId, PhotonMessageInfo info)
         {
             if (!PhotonNetwork.IsMasterClient) return;
+            if (info.Sender != PhotonNetwork.MasterClient && !Plugin.CfgAllowClientDelete) return;
 
             var view = PhotonView.Find(viewId);
             if (view == null) return;
@@ -249,6 +278,14 @@ namespace PeakStranding.Components
             _readyPlayers.Add(info.Sender.ActorNumber);
             Plugin.Log.LogInfo($"Player {info.Sender.NickName} requested full sync.");
             SyncAllStructuresToPlayer(info.Sender);
+            photonView.RPC(nameof(SyncSettings_RPC), info.Sender, Plugin.CfgAllowClientLike, Plugin.CfgAllowClientDelete);
+        }
+
+        [PunRPC]
+        private void SyncSettings_RPC(bool allowLike, bool allowDelete)
+        {
+            OverlayManager.ClientsCanLike = allowLike;
+            OverlayManager.ClientsCanDelete = allowDelete;
         }
     }
 }

@@ -66,6 +66,10 @@ namespace PeakStranding.Components
         public static KeyCode RemoveKey = KeyCode.Delete;
         public static float RemoveHoldSeconds = 0.6f;
 
+        // Permissions pushed from the host
+        public static bool ClientsCanLike = true;
+        public static bool ClientsCanDelete = true;
+
         // Focus and hold state
         private Entry? _focused;
         private float _removeHeldTime;
@@ -79,6 +83,7 @@ namespace PeakStranding.Components
             public int likes;
             public ulong id; // server id (0 for local-only)
             public ulong user_id;
+            public bool canLike;
         }
 
         // Made public to be accessible by the sync manager
@@ -89,6 +94,7 @@ namespace PeakStranding.Components
             public int likes;
             public ulong id;
             public ulong user_id;
+            public bool canLike = true;
             public GameObject go = null!;
             // Like feedback
             public System.Collections.Generic.List<Floater> floaters = new();
@@ -148,7 +154,8 @@ namespace PeakStranding.Components
                     username = info.username ?? "",
                     likes = Mathf.Max(0, info.likes),
                     id = info.id,
-                    user_id = info.user_id
+                    user_id = info.user_id,
+                    canLike = info.canLike
                 });
                 return;
             }
@@ -173,7 +180,8 @@ namespace PeakStranding.Components
                                 username = info.username ?? "",
                                 likes = Mathf.Max(0, info.likes),
                                 id = info.id,
-                                user_id = info.user_id
+                                user_id = info.user_id,
+                                canLike = info.canLike
                             });
                         }
                         return;
@@ -190,7 +198,8 @@ namespace PeakStranding.Components
                 username = info.username ?? "",
                 likes = Mathf.Max(0, info.likes),
                 id = info.id,
-                user_id = info.user_id
+                user_id = info.user_id,
+                canLike = info.canLike
             });
         }
 
@@ -207,12 +216,23 @@ namespace PeakStranding.Components
             return new List<Entry>(_entries);
         }
 
-        public void UpdateLikes(GameObject target, int newLikeCount)
+        public void ApplyLikeBroadcast(GameObject target, int newLikeCount, bool canLike)
         {
             var entry = _entries.FirstOrDefault(e => e.go == target);
             if (entry != null)
             {
                 entry.likes = newLikeCount;
+                entry.canLike = canLike;
+                if (entry.floaters == null) entry.floaters = new System.Collections.Generic.List<Floater>(4);
+                var f = new Floater
+                {
+                    t = 0f,
+                    duration = 0.5f,
+                    xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
+                    scale = UnityEngine.Random.Range(0.9f, 1.1f)
+                };
+                entry.floaters.Add(f);
+                entry.likeTickT = 1f;
             }
         }
 
@@ -346,14 +366,17 @@ namespace PeakStranding.Components
         {
             if (_focused == null) { _removeHeldTime = 0f; return; }
 
+            bool canLike = _focused.canLike && (PhotonNetwork.IsMasterClient || ClientsCanLike);
+            bool canDelete = PhotonNetwork.IsMasterClient || ClientsCanDelete;
+
             // Like on key down
-            if (Input.GetKeyDown(LikeKey))
+            if (canLike && Input.GetKeyDown(LikeKey))
             {
                 TryLike(_focused);
             }
 
             // Remove on hold
-            if (Input.GetKey(RemoveKey))
+            if (canDelete && Input.GetKey(RemoveKey))
             {
                 _removeHeldTime += Time.unscaledDeltaTime;
                 if (_removeHeldTime >= RemoveHoldSeconds)
@@ -529,20 +552,26 @@ namespace PeakStranding.Components
                     // prompts only for focused (skip while removing)
                     if (isFocused && !e.removing)
                     {
-                        string likePrompt = $"[{LikeKey}] Like";
-                        string delPrompt = $"Hold [{RemoveKey}] Remove";
-                        var promptStyle = new GUIStyle(GUI.skin.label)
+                        bool canLike = e.canLike && (PhotonNetwork.IsMasterClient || ClientsCanLike);
+                        bool canDelete = PhotonNetwork.IsMasterClient || ClientsCanDelete;
+                        var prompts = new System.Collections.Generic.List<string>();
+                        if (canLike) prompts.Add($"[{LikeKey}] Like");
+                        if (canDelete) prompts.Add($"Hold [{RemoveKey}] Remove");
+                        if (prompts.Count > 0)
                         {
-                            fontSize = Mathf.RoundToInt(12 * UiScale),
-                            alignment = TextAnchor.MiddleCenter,
-                            normal = { textColor = new Color(1f, 1f, 1f, 0.85f * visibility) }
-                        };
+                            var promptStyle = new GUIStyle(GUI.skin.label)
+                            {
+                                fontSize = Mathf.RoundToInt(12 * UiScale),
+                                alignment = TextAnchor.MiddleCenter,
+                                normal = { textColor = new Color(1f, 1f, 1f, 0.85f * visibility) }
+                            };
 
-                        float rowH = 16f * UiScale;
-                        var promptsRect = new Rect(0f, rect.height - rowH - 2f * UiScale, rect.width, rowH);
-                        GUI.Label(promptsRect, $"{likePrompt}    •    {delPrompt}", promptStyle);
+                            float rowH = 16f * UiScale;
+                            var promptsRect = new Rect(0f, rect.height - rowH - 2f * UiScale, rect.width, rowH);
+                            GUI.Label(promptsRect, string.Join("    •    ", prompts), promptStyle);
 
-                        // no separate progress bar; shrink animation communicates delete hold
+                            // no separate progress bar; shrink animation communicates delete hold
+                        }
                     }
 
                 }
@@ -594,50 +623,20 @@ namespace PeakStranding.Components
 
         private void TryLike(Entry e)
         {
-            // Local instant feedback
-            e.likes += 1;
-            // Spawn floater and start likes tick
-            if (e.floaters == null) e.floaters = new System.Collections.Generic.List<Floater>(4);
-            var f = new Floater
-            {
-                t = 0f,
-                duration = 0.5f,
-                xJitter = UnityEngine.Random.Range(-8f * UiScale, 8f * UiScale),
-                scale = UnityEngine.Random.Range(0.9f, 1.1f)
-            };
-            e.floaters.Add(f);
-            e.likeTickT = 1f;
+            if (e.go == null) return;
+            var pv = e.go.GetPhotonView();
+            if (pv == null || PeakStrandingSyncManager.Instance == null) return;
 
-            // On the host, this works as before.
+            var manager = PeakStrandingSyncManager.Instance;
+            int viewId = pv.ViewID;
+
             if (PhotonNetwork.IsMasterClient)
             {
-                // Prevent liking one's own structure
-                if (e.user_id != 0 && e.user_id == Steamworks.SteamUser.GetSteamID().m_SteamID)
-                {
-                    Plugin.Log.LogInfo("User tried to like their own structure. Denied.");
-                    return;
-                }
-
-                if (e.id != 0)
-                {
-                    LikeBuffer.Enqueue(e.id);
-                }
-                else
-                {
-                    Plugin.Log.LogInfo("Cannot like local-only structure (structure id 0).");
-                }
+                manager.RequestLikeFromHost(viewId);
             }
-            else // On the client, send a request to the host.
+            else
             {
-                if (e.go != null && e.go.GetPhotonView() != null && PeakStrandingSyncManager.Instance != null)
-                {
-                    var manager = PeakStrandingSyncManager.Instance;
-                    var viewId = e.go.GetPhotonView().ViewID;
-                    if (manager.photonView != null && manager.photonView.ViewID != 0)
-                    {
-                        manager.photonView.RPC("RequestLike_RPC", RpcTarget.MasterClient, viewId);
-                    }
-                }
+                manager.photonView.RPC("RequestLike_RPC", RpcTarget.MasterClient, viewId);
             }
         }
 

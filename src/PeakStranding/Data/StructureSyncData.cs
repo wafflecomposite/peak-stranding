@@ -14,5 +14,6 @@ namespace PeakStranding.Data
         public int Likes { get; set; }
         public ulong ServerId { get; set; }
         public ulong UserId { get; set; }
+        public bool LikeEnabled { get; set; }
     }
 }

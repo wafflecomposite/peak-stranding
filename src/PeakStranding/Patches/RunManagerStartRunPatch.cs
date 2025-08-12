@@ -13,10 +13,12 @@ public class RunManagerStartRunPatch
 {
     private static void Postfix(RunManager __instance)
     {
-        if (__instance.GetComponent<PeakStrandingSyncManager>() == null)
+        var sync = __instance.GetComponent<PeakStrandingSyncManager>();
+        if (sync == null)
         {
-            __instance.gameObject.AddComponent<PeakStrandingSyncManager>();
+            sync = __instance.gameObject.AddComponent<PeakStrandingSyncManager>();
         }
+        sync.ResetRunLikes();
 
         if (!PhotonNetwork.IsMasterClient)
         {

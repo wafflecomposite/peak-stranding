@@ -172,7 +172,8 @@ namespace PeakStranding
                                 username = label,
                                 likes = likes,
                                 id = id,
-                                user_id = user_id
+                                user_id = user_id,
+                                canLike = true
                             });
                             PeakStrandingSyncManager.Instance?.RegisterNewStructure(spawnedGo, label, likes, id, user_id);
                             // Try to notify clients about the new structure
