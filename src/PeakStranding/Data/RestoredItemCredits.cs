@@ -4,7 +4,7 @@ namespace PeakStranding.Data
 {
     public class RestoredItemCredits : MonoBehaviour
     {
-        private Camera _mainCam;
+        private Camera _mainCam = null!;
 
         public string displayText = "";
 

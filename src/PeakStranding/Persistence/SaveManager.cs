@@ -7,6 +7,7 @@ using System.Linq;
 using BepInEx;
 using Newtonsoft.Json;
 using PeakStranding.Data;
+using PeakStranding.Components;
 using PeakStranding.Online;
 using PeakStranding.Patches;
 using Photon.Pun;
@@ -28,7 +29,8 @@ namespace PeakStranding
             Converters = new List<JsonConverter> { new Vector3Converter(), new QuaternionConverter() }
         };
 
-        private static readonly Dictionary<int, List<(PlacedItemData data, string label)>> CachedStructures = new();
+        // Cache per segment structures with metadata: username label, server id, likes
+        private static readonly Dictionary<int, List<(PlacedItemData data, string label, ulong id, int likes, ulong user_id)>> CachedStructures = new();
         private static readonly Dictionary<int, List<GameObject>> SpawnedInstances = new();
 
         private static string GetSaveFilePath(int mapId)
@@ -88,6 +90,7 @@ namespace PeakStranding
 
         public static void CacheLocalStructures()
         {
+            if (!PhotonNetwork.IsMasterClient) return;
             var mapId = DataHelper.GetCurrentLevelIndex();
             var allItems = GetSavedItemsForSeed(mapId);
             var itemsToLoad = allItems;
@@ -102,14 +105,16 @@ namespace PeakStranding
             {
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int, ulong)>();
                 }
-                CachedStructures[itemData.MapSegment].Add((itemData, "You"));
+                // Local structures have no server id and zero likes
+                CachedStructures[itemData.MapSegment].Add((itemData, "You", 0UL, 0, Steamworks.SteamUser.GetSteamID().m_SteamID));
             }
         }
 
         public static void CacheRemoteStructures(List<ServerStructureDto> items)
         {
+            if (!PhotonNetwork.IsMasterClient) return;
             if (items == null || items.Count == 0)
             {
                 Plugin.Log.LogInfo("No remote structures to cache.");
@@ -121,9 +126,9 @@ namespace PeakStranding
                 var itemData = item.ToPlacedItemData();
                 if (!CachedStructures.ContainsKey(itemData.MapSegment))
                 {
-                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string)>();
+                    CachedStructures[itemData.MapSegment] = new List<(PlacedItemData, string, ulong, int, ulong)>();
                 }
-                CachedStructures[itemData.MapSegment].Add((itemData, item.username));
+                CachedStructures[itemData.MapSegment].Add((itemData, item.username, item.id, item.likes, item.user_id));
             }
         }
 
@@ -140,16 +145,52 @@ namespace PeakStranding
             try
             {
                 Plugin.Log.LogInfo($"Spawning {itemsToSpawn.Count} structures for segment {segmentIndex}.");
-                foreach (var (itemData, label) in itemsToSpawn)
+                foreach (var (itemData, label, id, likes, user_id) in itemsToSpawn)
                 {
                     SpawnItem(itemData, label, (spawnedGo) =>
                     {
-                        if (spawnedGo == null) return;
+                        if (spawnedGo == null)
+                        {
+                            Plugin.Log.LogWarning("SpawnItem resulted in a null GameObject. Skipping registration.");
+                            return;
+                        }
                         if (!SpawnedInstances.ContainsKey(segmentIndex))
                         {
                             SpawnedInstances[segmentIndex] = new List<GameObject>();
                         }
                         SpawnedInstances[segmentIndex].Add(spawnedGo);
+
+                        // Register overlay for this primary spawned object (skip bare Rope instances)
+                        bool isBareRope = spawnedGo.GetComponent<Rope>() != null
+                                          && spawnedGo.GetComponent<RopeAnchor>() == null
+                                          && spawnedGo.GetComponent<RopeAnchorWithRope>() == null;
+                        if (!isBareRope)
+                        {
+                            OverlayManager.Register(new OverlayManager.RegisterInfo
+                            {
+                                target = spawnedGo,
+                                username = label,
+                                likes = likes,
+                                id = id,
+                                user_id = user_id,
+                                canLike = true
+                            });
+                            PeakStrandingSyncManager.Instance?.RegisterNewStructure(spawnedGo, label, likes, id, user_id);
+                            // Try to notify clients about the new structure
+                            /*try
+                            {
+                                Plugin.Log.LogInfo($"Trying to register: {spawnedGo}");
+                                if (PhotonNetwork.IsMasterClient)
+                                {
+                                    PeakStrandingSyncManager.Instance?.RegisterNewStructure(spawnedGo, label, likes, id, user_id);
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                Plugin.Log.LogInfo($"Failed to register: {spawnedGo}");
+                            }*/
+
+                        }
                     });
                 }
             }
@@ -173,26 +214,8 @@ namespace PeakStranding
             {
                 if (instance != null)
                 {
-                    var rope = instance.GetComponent<Rope>();
-                    rope?.photonView.RPC("Detach_Rpc", RpcTarget.AllBuffered);
-
-                    /*
-                    var magicBean = instance.GetComponent<MagicBean>();
-                    if (magicBean != null)
-                    {
-                        MagicBeanPatch.RemoveBeanAndVine(magicBean);
-                    }
-                    */
-
-                    var pv = instance.GetComponent<PhotonView>();
-                    if (pv != null)
-                    {
-                        PhotonNetwork.Destroy(pv);
-                    }
-                    else
-                    {
-                        UnityEngine.Object.Destroy(instance);
-                    }
+                    // Unified deletion handles groups, ropes, anchors, beans/vines
+                    DeletionUtility.Delete(instance);
                 }
             }
             SpawnedInstances.Remove(segmentIndex);
@@ -233,21 +256,14 @@ namespace PeakStranding
             SessionPlacedItems.Clear();
         }
 
-        public static void AddCreditsToItem(GameObject gameObj, string label)
-        {
-            if (gameObj == null || string.IsNullOrEmpty(label) || !Plugin.CfgShowStructureCredits) return;
-            var credits = gameObj.AddComponent<RestoredItemCredits>();
-            credits.displayText = label;
-        }
-
         // --- MODIFIED: Ensured the marker is passed as an object array ---
-        public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject> onSpawned = null)
+        public static void SpawnItem(PlacedItemData itemData, string label = "", Action<GameObject>? onSpawned = null)
         {
             var prefabPath = itemData.PrefabName;
             if (!DataHelper.IsPrefabAllowed(prefabPath))
             {
                 Plugin.Log.LogError($"Prefab '{prefabPath}' is not allowed by the structure allow list.");
-                onSpawned?.Invoke(null);
+                onSpawned?.Invoke(default!);
                 return;
             }
 
@@ -259,32 +275,22 @@ namespace PeakStranding
                 if (prefab == null)
                 {
                     Plugin.Log.LogError($"Prefab not found in Resources: {prefabPath}");
-                    onSpawned?.Invoke(null);
+                    onSpawned?.Invoke(default!);
                     return;
                 }
                 var spawnedItem = PhotonNetwork.Instantiate(prefabPath, itemData.Position, itemData.Rotation, 0, instantiationData);
                 if (spawnedItem == null)
                 {
                     Plugin.Log.LogError($"Failed to instantiate prefab via Photon: {prefabPath}");
-                    onSpawned?.Invoke(null);
+                    onSpawned?.Invoke(default!);
                     return;
                 }
                 spawnedItem.AddComponent<RestoredItem>();
-                AddCreditsToItem(spawnedItem, label);
                 onSpawned?.Invoke(spawnedItem);
             }
             else if (prefabPath.StartsWith("PeakStranding/JungleVine"))
             {
-                if (itemData.RopeStart == Vector3.zero)
-                {
-                    itemData.RopeStart = itemData.from;
-                    itemData.RopeEnd = itemData.to;
-                    itemData.RopeFlyingRotation = itemData.mid;
-                    itemData.RopeLength = itemData.hang;
-                }
-
                 var spawnedItem = PhotonNetwork.Instantiate("ChainShootable", itemData.RopeStart, Quaternion.identity, 0, instantiationData);
-                AddCreditsToItem(spawnedItem, label);
                 onSpawned?.Invoke(spawnedItem);
                 var vine = spawnedItem.GetComponent<JungleVine>();
                 if (vine != null)
@@ -300,7 +306,6 @@ namespace PeakStranding
             {
                 string anchorPrefab = itemData.RopeAntiGrav ? "RopeAnchorForRopeShooterAnti" : "RopeAnchorForRopeShooter";
                 var anchorObj = PhotonNetwork.Instantiate(anchorPrefab, itemData.RopeStart, itemData.RopeAnchorRotation, 0, instantiationData);
-                AddCreditsToItem(anchorObj, label);
                 onSpawned?.Invoke(anchorObj);
                 var projectile = anchorObj.GetComponent<RopeAnchorProjectile>();
                 if (projectile == null)
@@ -337,9 +342,14 @@ namespace PeakStranding
                     while (rope.SegmentCount == 0) yield return null;
                     var anchorObj = PhotonNetwork.Instantiate(anchorPrefabName, itemData.RopeEnd, itemData.RopeAnchorRotation, 0, instantiationData);
                     anchorObj.AddComponent<RestoredItem>();
-                    AddCreditsToItem(anchorObj, label);
                     anchorObj.GetComponent<RopeAnchor>().Ghost = false;
                     rope.photonView.RPC("AttachToAnchor_Rpc", RpcTarget.AllBuffered, anchorObj.GetComponent<PhotonView>());
+                    // Group deletion: ensure anchor has DeletableGroup with rope + anchor
+                    var group = anchorObj.GetComponent<PeakStranding.Components.DeletableGroup>();
+                    if (group == null) group = anchorObj.AddComponent<PeakStranding.Components.DeletableGroup>();
+                    var anchorPv = anchorObj.GetComponent<PhotonView>();
+                    if (anchorPv != null) group.Add(anchorPv);
+                    if (rope != null && rope.photonView != null) group.Add(rope.photonView);
                     float used = seg - spool.minSegments;
                     spool.RopeFuel = Mathf.Max(0f, spool.RopeFuel - used);
                     onSpawned?.Invoke(ropeObj);
@@ -360,14 +370,13 @@ namespace PeakStranding
                 }
                 Vector3 upDir = itemData.Rotation * Vector3.forward;
                 bean.photonView.RPC("GrowVineRPC", RpcTarget.AllBuffered, itemData.Position, upDir, itemData.RopeLength);
-                AddCreditsToItem(beanObj, label);
                 onSpawned?.Invoke(beanObj);
                 //UnityEngine.Object.Destroy(beanObj);
             }
             else
             {
                 Plugin.Log.LogError($"Failed to instantiate some prefab: Unhandled type: {prefabPath}");
-                onSpawned?.Invoke(null);
+                onSpawned?.Invoke(default!);
             }
         }
 

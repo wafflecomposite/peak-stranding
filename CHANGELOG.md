@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.2] - 2025-08-09
+## [0.9.0] - 2025-08-13
+
+### Added
+
+- Ability to like online items
+- Ability to delete online items (locally, current run only)
+- Config values to control whether clients can like or delete
+- Added Scout Cannon to shareable items pool (Check the configuration; you may need to add it to the allow list manually)
+
+### Fixed
+- Invisible ropes on the client side (thanks to Harmony for the feedback!)
+- Improved network handling
+
+### Changed
+- Updated visuals for online item overlay
+
+### Removed
+- Сode has been cleaned of warnings
+
+## [0.8.3] - 2025-08-09
+
+### Changed
+- Fixed the magic bean breaking the game
+
+## [0.8.2] - 2025-08-09 - **BROKEN, DO NOT USE**
 
 ### Added
 

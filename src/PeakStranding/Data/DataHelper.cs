@@ -30,7 +30,8 @@ public static class DataHelper
         { "PeakStranding/MagicBeanVine", "magicbean" },
         { "PeakStranding/RopeShooter", "ropeshooter" },
         { "PeakStranding/RopeSpool", "ropespool" },
-        { "PortableStovetop_Placed", "stove" }
+        { "PortableStovetop_Placed", "stove" },
+        { "ScoutCannon_Placed", "scoutcannon" },
     };
 
     public static bool IsPrefabAllowed(string prefabName)

@@ -11,6 +11,16 @@ using UnityEngine;
 
 namespace PeakStranding.Online
 {
+    internal class ApiException : HttpRequestException
+    {
+        public System.Net.HttpStatusCode StatusCode { get; }
+
+        public ApiException(System.Net.HttpStatusCode statusCode) : base($"Request failed with status code {statusCode}")
+        {
+            StatusCode = statusCode;
+        }
+    }
+
     internal static class RemoteApi
     {
         private static string _cachedSteamAuthTicket = string.Empty;
@@ -30,6 +40,7 @@ namespace PeakStranding.Online
                 : Plugin.CfgRemoteApiUrl.TrimEnd('/');
         }
         internal static string StructuresUrl => $"{GetBaseUrl()}/structures";
+        internal static string StructureUrl(ulong id) => $"{GetBaseUrl()}/structures/{id}";
 
         private static string GetAuthTicket(bool forceRefresh = false)
         {
@@ -63,13 +74,10 @@ namespace PeakStranding.Online
                         req.Headers.Add("X-Steam-Auth", authTicket);
                         var resp = await http.SendAsync(req).ConfigureAwait(false);
 
-                        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                            resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        if (!resp.IsSuccessStatusCode)
                         {
-                            throw new HttpRequestException($"Authentication failed with status code: {resp.StatusCode}");
+                            throw new ApiException(resp.StatusCode);
                         }
-
-                        resp.EnsureSuccessStatusCode();
                         return true;
                     });
                 }
@@ -103,13 +111,10 @@ namespace PeakStranding.Online
                 req.Headers.Add("X-Steam-Auth", authTicket);
                 using var resp = await http.SendAsync(req).ConfigureAwait(false);
 
-                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                    resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (!resp.IsSuccessStatusCode)
                 {
-                    throw new HttpRequestException($"Authentication failed with status code: {resp.StatusCode}");
+                    throw new ApiException(resp.StatusCode);
                 }
-
-                resp.EnsureSuccessStatusCode();
                 var content = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var dtoList = JsonConvert.DeserializeObject<List<ServerStructureDto>>(content) ?? new List<ServerStructureDto>();
 
@@ -121,6 +126,35 @@ namespace PeakStranding.Online
                 }
                 Plugin.Log.LogInfo($"Received {dtoList.Count} online structures from {uniqueUsers.Count} users for map_id {mapId}");
                 return dtoList;
+            });
+        }
+
+        public static async Task<bool> LikeStructureAsync(ulong id)
+        {
+            // Backward-compat: default to count = 1
+            return await LikeStructureAsync(id, 1).ConfigureAwait(false);
+        }
+
+        public static async Task<bool> LikeStructureAsync(ulong id, int count)
+        {
+            if (count <= 0) return true;
+            return await ExecuteWithAuthRetry(async (authTicket) =>
+            {
+                var url = $"{StructureUrl(id)}/like";
+                // Send a JSON body with the count to allow batching.
+                var payload = JsonConvert.SerializeObject(new { count });
+                using var req = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(payload, Encoding.UTF8, "application/json")
+                };
+                req.Headers.Add("X-Steam-Auth", authTicket);
+                using var resp = await http.SendAsync(req).ConfigureAwait(false);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    throw new ApiException(resp.StatusCode);
+                }
+                return true;
             });
         }
 
@@ -138,7 +172,24 @@ namespace PeakStranding.Online
                     var authTicket = GetAuthTicket(attempt > 0); // Force refresh on retry
                     return await action(authTicket).ConfigureAwait(false);
                 }
-                catch (HttpRequestException ex)
+                catch (ApiException ex)
+                {
+                    lastException = ex;
+                    // HttpStatusCode.TooManyRequests is not available in the .NET version used by the game, so we use the integer value
+                    if ((int)ex.StatusCode == 429)
+                    {
+                        Plugin.Log.LogWarning("Request failed due to rate limiting. No retry will be attempted.");
+                        shouldRetry = false;
+                    }
+                    else if (attempt < maxRetries)
+                    {
+                        Plugin.Log.LogInfo($"Request failed with HTTP status {ex.StatusCode}, refreshing auth ticket and retrying...");
+                        InvalidateAuthTicket();
+                        shouldRetry = true;
+                        attempt++;
+                    }
+                }
+                catch (HttpRequestException ex) // Catches other network errors (timeouts, etc.)
                 {
                     lastException = ex;
                     if (attempt < maxRetries)
@@ -165,7 +216,7 @@ namespace PeakStranding.Online
             {
                 throw lastException;
             }
-            return default;
+            return default!;
         }
     }
 }
