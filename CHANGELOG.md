@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Ability to like online items
 - Ability to delete online items (locally, current run only)
+- Clients now see the online item overlay (nicknames, likes) too.
 - Config values to control whether clients can like or delete
 - Added Scout Cannon to shareable items pool (Check the configuration; you may need to add it to the allow list manually)
 
