@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2025-09-21
+
+### Added
+- Display the stats!
+- Ability to disable the UI
+- Ability to remap the like/delete buttons. Use ModConfig to map gamepad buttons
+- Item overlay reworked
+
+### Fixed
+- Replaced broken `Show_Structure_Credits` with `Show_Structure_Overlay`
+
+### Changed
+- Rope optimizer now waits for 15s instead of 10s. Hopefully that would help with weird ropes somewhat
+
 ## [0.9.0] - 2025-08-13
 
 ### Added

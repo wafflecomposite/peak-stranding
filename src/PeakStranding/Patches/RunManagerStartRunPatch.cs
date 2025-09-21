@@ -102,15 +102,15 @@ public class RunManagerStartRunPatch
         {
             var str = $"Failed to fetch user stats: {DescribeTaskFailure(userTask)}";
             Plugin.Log.LogWarning(str);
-            color = Color.red;
-            message += str + "\n";
+            //color = Color.red;
+            //message += str + "\n";
         }
         else if (userTask.IsCanceled)
         {
             var str = "Failed to fetch user stats: request was cancelled.";
             Plugin.Log.LogWarning(str);
-            color = Color.red;
-            message += str + "\n";
+            //color = Color.red;
+            //message += str + "\n";
         }
 
         if (globalTask.Status == TaskStatus.RanToCompletion && globalTask.Result != null)

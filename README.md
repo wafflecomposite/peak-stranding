@@ -3,7 +3,7 @@
 > Once, there was an expedition
 
 
-### 👍 Now with likes 👍
+### 📈 Now with stats 📊
 
 This PEAK mod adds Death Stranding-style asynchronous multiplayer - random items from other players appear in your world and display the names of the scouts who placed them. 
 You can also save and load your items locally to keep them between the runs on the same map (**disabled by default**).
@@ -40,6 +40,9 @@ The config file is located at `BepInEx/config/com.github.wafflecomposite.PeakStr
 ### UI 
 - `Show_Structure_Overlay` - Whether to show the in-world overlay for structures placed by other players (including like/remove prompts). Default: `true`.
 - `Show_Toasts` - Whether to show toasts with stats. Default: `true`.
+## Controls
+- `Overlay_Like_Key` - Button to like the online structure. Can be a gamepad button, remap with ModConfig. Default: `L`.
+- `Overlay_Remove_Key` - Button to delete the structure. Can be a gamepad button, remap with ModConfig. Default: `Delete`.
 ### Experimental
 - `Experimental_Rope_Optimizer` - Fixes severe lag caused by a large number of ropes by disabling their physics and throttling network sync when not in use. Installing the mod on clients is recommended for best expirience. Try to disable if ropes become unusable.
 
