@@ -37,9 +37,9 @@ The config file is located at `BepInEx/config/com.github.wafflecomposite.PeakStr
 - `Allow_Clients_Like` - Allow clients to like online structures. Default: `true`.
 - `Allow_Clients_Delete` - Allow clients to delete online structures. Default: `true`.
 - `Custom_Server_Api_BaseUrl` - Custom Server URL. Leave empty to use official Peak Stranding server
-- `Custom_Server_Api_BaseUrl` - Custom Server URL. Leave empty to use official Peak Stranding server
 ### UI 
-- `Show_Structure_Credits` - Whether to show usernames for structures placed by other players in the UI. Names comes from Steam and can potentially be offensive. Default: `true`.
+- `Show_Structure_Overlay` - Whether to show the in-world overlay for structures placed by other players (including like/remove prompts). Default: `true`.
+- `Show_Toasts` - Whether to show toasts with stats. Default: `true`.
 ### Experimental
 - `Experimental_Rope_Optimizer` - Fixes severe lag caused by a large number of ropes by disabling their physics and throttling network sync when not in use. Installing the mod on clients is recommended for best expirience. Try to disable if ropes become unusable.
 

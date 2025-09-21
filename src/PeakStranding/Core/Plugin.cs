@@ -23,8 +23,8 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     internal static ConfigEntry<bool> loadRemoteStructuresConfig = null!;
     internal static ConfigEntry<int> remoteStructuresLimitConfig = null!;
     internal static ConfigEntry<string> remoteApiUrlConfig = null!;
-    internal static ConfigEntry<bool> showStructureCreditsConfig = null!;
-    // internal static ConfigEntry<bool> showToastsConfig;
+    internal static ConfigEntry<bool> showStructureOverlayConfig = null!;
+    internal static ConfigEntry<bool> showToastsConfig = null!;
     internal static ConfigEntry<bool> ropeOptimizerExperimentalConfig = null!;
     internal static ConfigEntry<string> structureAllowListConfig = null!;
     internal static ConfigEntry<bool> allowClientsLikeConfig = null!;
@@ -38,18 +38,17 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     public static bool CfgRemoteLoadStructures => loadRemoteStructuresConfig.Value;
     public static int CfgRemoteStructuresLimit => remoteStructuresLimitConfig.Value;
     public static string CfgRemoteApiUrl => remoteApiUrlConfig.Value;
-    public static bool CfgShowStructureCredits => showStructureCreditsConfig.Value;
+    public static bool CfgShowStructureOverlay => showStructureOverlayConfig.Value;
     public static bool CfgRopeOptimizerExperimental => ropeOptimizerExperimentalConfig.Value;
     public static string CfgStructureAllowList => structureAllowListConfig.Value;
     public static bool CfgAllowClientLike => allowClientsLikeConfig.Value;
     public static bool CfgAllowClientDelete => allowClientsDeleteConfig.Value;
-    // public static bool CfgShowToasts => showToastsConfig.Value;
+    public static bool CfgShowToasts => showToastsConfig.Value;
 
     private void Awake()
     {
         Log = Logger;
 
-        // showToastsConfig = Config.Bind("UI", "ShowToasts", true, "Enable or disable toast notifications in the UI.");
         saveStructuresLocallyConfig = Config.Bind("Local", "Save_Structures_Locally", true,
             "Whether to save structures placed in your lobby locally");
         loadLocalStructuresConfig = Config.Bind("Local", "Load_Local_Structures", false,
@@ -62,8 +61,9 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
             "Whether to load random structures placed by other players");
         remoteStructuresLimitConfig = Config.Bind("Online", "Online_Structures_Limit", 40,
             "How many remote structures to load at the start of a new run");
-        showStructureCreditsConfig = Config.Bind("UI", "Show_Structure_Credits", true,
-            "Whether to show usernames for structures placed by other players in the UI");
+        showStructureOverlayConfig = Config.Bind("UI", "Show_Structure_Overlay", true,
+            "Whether to show the overlay for structures placed by other players in the world");
+        showToastsConfig = Config.Bind("UI", "Show_Toasts", true, "Enable or disable toast notifications in the UI.");
         structureAllowListConfig = Config.Bind("Online", "Structure_Allow_List", string.Join(" ", DataHelper.prefabMapping.GetAllSeconds()),
             "A space-separated list of structure prefab names that are allowed to be placed by other players. Leave empty to allow all structures.");
         ropeOptimizerExperimentalConfig = Config.Bind("Experimental", "Experimental_Rope_Optimizer", true,
@@ -72,16 +72,14 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         allowClientsLikeConfig = Config.Bind("Online", "Allow_Clients_Like", true, "Allow clients to like structures.");
         allowClientsDeleteConfig = Config.Bind("Online", "Allow_Clients_Delete", true, "Allow clients to delete structures.");
 
-        //if (CfgShowToasts) new GameObject("PeakStranding UI Manager").AddComponent<UIHandler>();
-
         PhotonNetwork.AddCallbackTarget(this);
         Log.LogInfo($"Plugin {Name} is patching...");
         var harmony = new Harmony("com.github.wafflecomposite.PeakStranding");
         harmony.PatchAll();
         Log.LogInfo($"Plugin {Name} is loaded!");
 
-        //if (ConfigHandler.ShowToasts)
-        new GameObject("PeakStranding UI Manager").AddComponent<ToastController>();
+        if (ToastController.Instance == null)
+            new GameObject("PeakStranding UI Toasts").AddComponent<ToastController>();
 
         // check if any of the structures in allow list are not in the mapping
         var readablePrefabNames = DataHelper.prefabMapping.GetAllSeconds();

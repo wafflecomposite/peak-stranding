@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using PeakStranding.Online;
 using Photon.Pun;
-using Photon.Realtime;
 using UnityEngine;
 using System.Reflection;
 
@@ -304,6 +301,14 @@ namespace PeakStranding.Components
                 }
             }
 
+            if (!Plugin.CfgShowStructureOverlay)
+            {
+                _visible.Clear();
+                _focused = null;
+                _removeHeldTime = 0f;
+                return;
+            }
+
             if (Time.frameCount >= _nextCullFrame)
             {
                 _nextCullFrame = Time.frameCount + ThrottleFrames;
@@ -393,6 +398,7 @@ namespace PeakStranding.Components
 
         private void OnGUI()
         {
+            if (!Plugin.CfgShowStructureOverlay) return;
             if (_cam == null || _visible.Count == 0) return;
             EnsureGui();
 

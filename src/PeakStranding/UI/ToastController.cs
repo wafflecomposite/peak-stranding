@@ -62,6 +62,7 @@ namespace PeakStranding.UI
 
         public void Toast(string text, Color color, float duration = 2f, float fadeTime = 1f)
         {
+            if (!Plugin.CfgShowToasts) return;
             if (textMesh == null) return;
 
             // Cancel/stop any in-flight fade
