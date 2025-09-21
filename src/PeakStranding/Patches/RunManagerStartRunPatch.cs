@@ -135,7 +135,7 @@ public class RunManagerStartRunPatch
             message += str + "\n";
         }
 
-        ToastController.Instance.Toast(message, Color.green, 15f, 4f);
+        ToastController.Instance.Toast(message, color, 15f, 4f);
     }
 
 

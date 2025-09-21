@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using PeakStranding.Data;
 using PeakStranding.UI;
+using PeakStranding.Components;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -29,6 +30,9 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
     internal static ConfigEntry<string> structureAllowListConfig = null!;
     internal static ConfigEntry<bool> allowClientsLikeConfig = null!;
     internal static ConfigEntry<bool> allowClientsDeleteConfig = null!;
+
+    internal static ConfigEntry<KeyCode> overlayLikeKeyConfig = null!;
+    internal static ConfigEntry<KeyCode> overlayRemoveKeyConfig = null!;
 
 
     public static bool CfgLocalSaveStructures => saveStructuresLocallyConfig.Value;
@@ -71,6 +75,14 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         remoteApiUrlConfig = Config.Bind("Online", "Custom_Server_Api_BaseUrl", "", "Custom Server URL. Leave empty to use official Peak Stranding server");
         allowClientsLikeConfig = Config.Bind("Online", "Allow_Clients_Like", true, "Allow clients to like structures.");
         allowClientsDeleteConfig = Config.Bind("Online", "Allow_Clients_Delete", true, "Allow clients to delete structures.");
+
+        overlayLikeKeyConfig = Config.Bind("Controls", "Overlay_Like_Key", KeyCode.L, "Key used to like structures from the overlay.");
+        overlayRemoveKeyConfig = Config.Bind("Controls", "Overlay_Remove_Key", KeyCode.Delete, "Key used to remove structures from the overlay.");
+
+        OverlayManager.LikeShortcut = overlayLikeKeyConfig.Value;
+        OverlayManager.RemoveShortcut = overlayRemoveKeyConfig.Value;
+        overlayLikeKeyConfig.SettingChanged += (_, _) => OverlayManager.LikeShortcut = overlayLikeKeyConfig.Value;
+        overlayRemoveKeyConfig.SettingChanged += (_, _) => OverlayManager.RemoveShortcut = overlayRemoveKeyConfig.Value;
 
         PhotonNetwork.AddCallbackTarget(this);
         Log.LogInfo($"Plugin {Name} is patching...");
