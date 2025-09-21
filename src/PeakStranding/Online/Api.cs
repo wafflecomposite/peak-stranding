@@ -41,6 +41,8 @@ namespace PeakStranding.Online
         }
         internal static string StructuresUrl => $"{GetBaseUrl()}/structures";
         internal static string StructureUrl(ulong id) => $"{GetBaseUrl()}/structures/{id}";
+        internal static string GlobalStatsUrl => $"{GetBaseUrl()}/stats/global";
+        internal static string UserStatsUrl => $"{GetBaseUrl()}/stats/me";
 
         private static string GetAuthTicket(bool forceRefresh = false)
         {
@@ -126,6 +128,58 @@ namespace PeakStranding.Online
                 }
                 Plugin.Log.LogInfo($"Received {dtoList.Count} online structures from {uniqueUsers.Count} users for map_id {mapId}");
                 return dtoList;
+            });
+        }
+
+        public static async Task<GlobalStatsDto> FetchGlobalStatsAsync()
+        {
+            return await ExecuteWithAuthRetry(async (authTicket) =>
+            {
+                Plugin.Log.LogInfo("Fetching global stats from remote");
+                using var req = new HttpRequestMessage(HttpMethod.Get, GlobalStatsUrl);
+                req.Headers.Add("X-Steam-Auth", authTicket);
+                using var resp = await http.SendAsync(req).ConfigureAwait(false);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    throw new ApiException(resp.StatusCode);
+                }
+
+                var content = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var stats = JsonConvert.DeserializeObject<GlobalStatsDto>(content);
+
+                if (stats == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize global stats response.");
+                }
+
+                return stats;
+            });
+        }
+
+        public static async Task<UserStatsDto> FetchUserStatsAsync()
+        {
+            return await ExecuteWithAuthRetry(async (authTicket) =>
+            {
+                Plugin.Log.LogInfo("Fetching user stats from remote");
+                using var req = new HttpRequestMessage(HttpMethod.Get, UserStatsUrl);
+                req.Headers.Add("X-Steam-Auth", authTicket);
+                using var resp = await http.SendAsync(req).ConfigureAwait(false);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    throw new ApiException(resp.StatusCode);
+                }
+
+                var content = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var stats = JsonConvert.DeserializeObject<UserStatsDto>(content);
+
+                if (stats == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize user stats response.");
+                }
+
+                return stats;
             });
         }
 
@@ -219,4 +273,41 @@ namespace PeakStranding.Online
             return default!;
         }
     }
+
+    internal class GlobalStatsDto
+    {
+        [JsonProperty("total_unique_players_all_time")]
+        public long TotalUniquePlayersAllTime { get; set; }
+
+        [JsonProperty("total_structures_uploaded_all_time")]
+        public long TotalStructuresUploadedAllTime { get; set; }
+
+        [JsonProperty("total_likes_given_all_time")]
+        public long TotalLikesGivenAllTime { get; set; }
+
+        [JsonProperty("total_unique_players_last_24h")]
+        public long TotalUniquePlayersLast24H { get; set; }
+
+        [JsonProperty("total_structures_uploaded_last_24h")]
+        public long TotalStructuresUploadedLast24H { get; set; }
+
+        [JsonProperty("server_version")]
+        public string ServerVersion { get; set; } = string.Empty;
+    }
+
+    internal class UserStatsDto
+    {
+        [JsonProperty("total_structures_uploaded")]
+        public long TotalStructuresUploaded { get; set; }
+
+        [JsonProperty("structures_uploaded_last_24h")]
+        public long StructuresUploadedLast24H { get; set; }
+
+        [JsonProperty("total_likes_received")]
+        public long TotalLikesReceived { get; set; }
+
+        [JsonProperty("total_likes_sent")]
+        public long TotalLikesSent { get; set; }
+    }
 }
+
