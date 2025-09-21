@@ -1,6 +1,4 @@
-using HarmonyLib;
 using Photon.Pun;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -18,7 +16,7 @@ namespace PeakStranding.Patches
     public static class Rope_ExtendedData
     {
         private static readonly ConditionalWeakTable<Rope, RopeData> AllRopeData = new();
-        public const float SleepDelay = 10.0f;
+        public const float SleepDelay = 15.0f;
 
         public static RopeData GetData(this Rope rope)
         {

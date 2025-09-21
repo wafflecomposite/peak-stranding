@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using BepInEx;
@@ -9,9 +8,9 @@ using Newtonsoft.Json;
 using PeakStranding.Data;
 using PeakStranding.Components;
 using PeakStranding.Online;
-using PeakStranding.Patches;
 using Photon.Pun;
 using UnityEngine;
+using PeakStranding.UI;
 
 namespace PeakStranding
 {
@@ -118,6 +117,7 @@ namespace PeakStranding
             if (items == null || items.Count == 0)
             {
                 Plugin.Log.LogInfo("No remote structures to cache.");
+                ToastController.Instance.Toast($"PeakStranding: no online items found for current map!?", Color.yellow, 5f, 3f);
                 return;
             }
 
@@ -130,6 +130,8 @@ namespace PeakStranding
                 }
                 CachedStructures[itemData.MapSegment].Add((itemData, item.username, item.id, item.likes, item.user_id));
             }
+
+            ToastController.Instance.Toast($"PeakStranding: {items.Count} online items have been loaded!", Color.green, 5f, 3f);
         }
 
         public static void SpawnStructuresForSegment(int segmentIndex)

@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using PeakStranding.Data;
+using PeakStranding.UI;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -78,6 +79,9 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         var harmony = new Harmony("com.github.wafflecomposite.PeakStranding");
         harmony.PatchAll();
         Log.LogInfo($"Plugin {Name} is loaded!");
+
+        //if (ConfigHandler.ShowToasts)
+        new GameObject("PeakStranding UI Manager").AddComponent<ToastController>();
 
         // check if any of the structures in allow list are not in the mapping
         var readablePrefabNames = DataHelper.prefabMapping.GetAllSeconds();
