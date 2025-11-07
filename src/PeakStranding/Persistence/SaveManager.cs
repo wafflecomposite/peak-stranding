@@ -345,7 +345,7 @@ namespace PeakStranding
                     var anchorObj = PhotonNetwork.Instantiate(anchorPrefabName, itemData.RopeEnd, itemData.RopeAnchorRotation, 0, instantiationData);
                     anchorObj.AddComponent<RestoredItem>();
                     anchorObj.GetComponent<RopeAnchor>().Ghost = false;
-                    rope.photonView.RPC("AttachToAnchor_Rpc", RpcTarget.AllBuffered, anchorObj.GetComponent<PhotonView>());
+                    rope.photonView.RPC("AttachToAnchor_Rpc", RpcTarget.AllBuffered, anchorObj.GetComponent<PhotonView>(), itemData.RopeLength);
                     // Group deletion: ensure anchor has DeletableGroup with rope + anchor
                     var group = anchorObj.GetComponent<PeakStranding.Components.DeletableGroup>();
                     if (group == null) group = anchorObj.AddComponent<PeakStranding.Components.DeletableGroup>();
