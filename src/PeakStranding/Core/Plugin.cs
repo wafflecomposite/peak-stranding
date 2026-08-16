@@ -151,7 +151,9 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         if (data?.Length > 0 && data[0] as string == SaveManager.RESTORED_ITEM_MARKER) return;
         var basicSpawnable = new string[]
         {
+            "AntiSphere_Projectile",
             "0_Items/ClimbingSpikeHammered",
+            "0_Items/CloudFungusPlaced",
             "0_Items/ShelfShroomSpawn",
             "0_Items/BounceShroomSpawn",
             "Flag_planted_seagull",

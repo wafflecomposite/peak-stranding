@@ -19,7 +19,9 @@ public class PhotonInstantiatePatch
 
         string[] basicSpawnable =
         {
+            "AntiSphere_Projectile",
             "0_Items/ClimbingSpikeHammered",
+            "0_Items/CloudFungusPlaced",
             "0_Items/ShelfShroomSpawn",
             "0_Items/BounceShroomSpawn",
             "Flag_planted_seagull",

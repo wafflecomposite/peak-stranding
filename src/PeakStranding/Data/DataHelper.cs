@@ -21,8 +21,10 @@ public static class DataHelper
 
     public static BiDictionary prefabMapping = new BiDictionary()
     {
+        { "AntiSphere_Projectile", "antizooka" },
         { "0_Items/BounceShroomSpawn", "bounceshroom" },
         { "0_Items/ClimbingSpikeHammered", "piton" },
+        { "0_Items/CloudFungusPlaced", "cloudfungus" },
         { "0_Items/ShelfShroomSpawn", "shelfshroom" },
         { "Flag_planted_seagull", "flagseagull" },
         { "Flag_planted_turtle", "flagturtle" },
