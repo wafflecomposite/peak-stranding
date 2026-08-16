@@ -361,19 +361,47 @@ namespace PeakStranding
             }
             else if (prefabPath.StartsWith("PeakStranding/MagicBeanVine"))
             {
-                var beanObj = PhotonNetwork.Instantiate("0_Items/MagicBean", itemData.Position, Quaternion.identity, 0, instantiationData);
-                beanObj.AddComponent<RestoredItem>();
-                //beanObj.AddComponent<MagicBeanPatch.MagicBeanEventHandler>();
-                var bean = beanObj.GetComponent<MagicBean>();
-                if (bean == null)
+                // Magic beans now create a room-owned MagicBeanVine and destroy the bean itself.
+                // Rotation.forward is the vine's up direction in existing saved/server records.
+                var upDirection = itemData.Rotation * Vector3.forward;
+                var forwardDirection = Vector3.Cross(upDirection, Vector3.right);
+                if (forwardDirection.sqrMagnitude < 0.0001f)
                 {
-                    Plugin.Log.LogError("Failed to instantiate MagicBean: prefab missing MagicBean script");
+                    forwardDirection = Vector3.Cross(upDirection, Vector3.forward);
+                }
+
+                var vineRotation = Quaternion.LookRotation(forwardDirection, upDirection);
+                var vineObj = PhotonNetwork.InstantiateRoomObject(
+                    "MagicBeanVine",
+                    itemData.Position,
+                    vineRotation,
+                    0,
+                    instantiationData);
+
+                if (vineObj == null)
+                {
+                    Plugin.Log.LogError("Failed to instantiate the MagicBeanVine room object.");
+                    onSpawned?.Invoke(default!);
                     return;
                 }
-                Vector3 upDir = itemData.Rotation * Vector3.forward;
-                bean.photonView.RPC("GrowVineRPC", RpcTarget.AllBuffered, itemData.Position, upDir, itemData.RopeLength);
-                onSpawned?.Invoke(beanObj);
-                //UnityEngine.Object.Destroy(beanObj);
+
+                var vine = vineObj.GetComponent<MagicBeanVine>();
+                var vineView = vineObj.GetComponent<PhotonView>();
+                if (vine == null || vineView == null)
+                {
+                    Plugin.Log.LogError("MagicBeanVine prefab is missing MagicBeanVine or PhotonView.");
+                    PhotonNetwork.Destroy(vineObj);
+                    onSpawned?.Invoke(default!);
+                    return;
+                }
+
+                vineObj.AddComponent<RestoredItem>();
+                vineView.RPC(
+                    nameof(MagicBeanVine.RPC_GrowVine),
+                    RpcTarget.AllBufferedViaServer,
+                    itemData.RopeLength,
+                    float.MinValue);
+                onSpawned?.Invoke(vineObj);
             }
             else
             {

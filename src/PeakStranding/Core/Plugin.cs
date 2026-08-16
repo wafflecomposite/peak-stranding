@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -87,8 +88,28 @@ public partial class Plugin : BaseUnityPlugin, IOnEventCallback
         PhotonNetwork.AddCallbackTarget(this);
         Log.LogInfo($"Plugin {Name} is patching...");
         var harmony = new Harmony("com.github.wafflecomposite.PeakStranding");
-        harmony.PatchAll();
-        Log.LogInfo($"Plugin {Name} is loaded!");
+        var patchTypes = typeof(Plugin).Assembly.GetTypes()
+            .Where(type => type.GetCustomAttributes(typeof(HarmonyPatch), false).Length > 0)
+            .OrderBy(type => type.FullName)
+            .ToArray();
+        var appliedPatchClasses = 0;
+        var failedPatchClasses = 0;
+
+        foreach (var patchType in patchTypes)
+        {
+            try
+            {
+                harmony.CreateClassProcessor(patchType).Patch();
+                appliedPatchClasses++;
+            }
+            catch (Exception ex)
+            {
+                failedPatchClasses++;
+                Log.LogError($"Failed to apply Harmony patch class {patchType.FullName}: {ex}");
+            }
+        }
+
+        Log.LogInfo($"Plugin {Name} is loaded! Applied {appliedPatchClasses} patch classes; {failedPatchClasses} failed.");
 
         if (ToastController.Instance == null)
             new GameObject("PeakStranding UI Toasts").AddComponent<ToastController>();

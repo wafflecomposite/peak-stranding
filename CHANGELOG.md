@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2026-08-17
+
+### Fixed
+- Restored the stats toast when the Airport lobby finishes loading.
+
+## [0.9.4] - 2026-08-17
+
+### Fixed
+- Restored compatibility with PEAK 2.1.a after Magic Bean vines moved to networked `MagicBeanVine` objects.
+- A missing optional Harmony target no longer prevents the rest of the mod from loading.
+
+### Changed
+- Updated the required BepInExPack PEAK version to 5.4.75301.
+
 ## [0.9.3] - 2025-11-07
 
 ### Fixed
